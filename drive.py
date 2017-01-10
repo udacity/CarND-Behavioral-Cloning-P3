@@ -2,6 +2,7 @@ import argparse
 import base64
 from datetime import datetime
 import os
+import shutil
 
 import numpy as np
 import socketio
@@ -39,7 +40,8 @@ def telemetry(sid, data):
     # save frame
     if args.image_folder != '':
         timestamp = datetime.utcnow().strftime('%Y_%m_%d_%H_%M_%S_%f')[:-3]
-        image.save('{}/{}.jpg'.format(args.image_folder, timestamp))
+        image_filename = os.path.join(args.image_folder, timestamp)
+        image.save('{}.jpg'.format(image_filename))
 
 
 @sio.on('connect')
@@ -88,8 +90,12 @@ if __name__ == '__main__':
 
     if args.image_folder != '':
         print("Creating image folder at {}".format(args.image_folder))
-        os.makedirs(args.image_folder)
-        print("THIS RUN WILL BE RECORDED ...")
+        if not os.path.exists(args.image_folder):
+            os.makedirs(args.image_folder)
+        else:
+            shutil.rmtree(args.image_folder)
+            os.makedirs(args.image_folder)
+        print("RECORDING THIS RUN ...")
     else:
         print("NOT RECORDING THIS RUN ...")
 
