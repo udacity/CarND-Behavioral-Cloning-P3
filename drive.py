@@ -12,7 +12,6 @@ from flask import Flask
 from io import BytesIO
 
 from keras.models import model_from_json
-from preprocess import process_image
 
 sio = socketio.Server()
 app = Flask(__name__)
@@ -32,15 +31,14 @@ def telemetry(sid, data):
     imgString = data["image"]
     image = Image.open(BytesIO(base64.b64decode(imgString)))
     image_array = np.asarray(image)
-    img = process_image(image_array)
-    steering_angle = float(model.predict(img[None, :, :, :], batch_size=1))
-    throttle = 0.1
-    # print(steering_angle, throttle)
+    steering_angle = float(model.predict(image_array[None, :, :, :], batch_size=1))
+    throttle = 0.2
+    print(steering_angle, throttle)
     send_control(steering_angle, throttle)
 
     # save frame
-    timestamp = datetime.utcnow().strftime('%Y_%m_%d_%H_%M_%S_%f')[:-3]
     if args.image_folder != '':
+        timestamp = datetime.utcnow().strftime('%Y_%m_%d_%H_%M_%S_%f')[:-3]
         image.save('{}/{}.jpg'.format(args.image_folder, timestamp))
 
 
@@ -91,9 +89,9 @@ if __name__ == '__main__':
     if args.image_folder != '':
         print("Creating image folder at {}".format(args.image_folder))
         os.makedirs(args.image_folder)
-        print("This run will be recorded ...")
+        print("THIS RUN WILL BE RECORDED ...")
     else:
-        print("Not recording this run ...")
+        print("NOT RECORDING THIS RUN ...")
 
     # wrap Flask application with engineio's middleware
     app = socketio.Middleware(sio, app)
