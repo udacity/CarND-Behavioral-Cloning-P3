@@ -22,26 +22,29 @@ prev_image_array = None
 
 @sio.on('telemetry')
 def telemetry(sid, data):
-    # The current steering angle of the car
-    steering_angle = data["steering_angle"]
-    # The current throttle of the car
-    throttle = data["throttle"]
-    # The current speed of the car
-    speed = data["speed"]
-    # The current image from the center camera of the car
-    imgString = data["image"]
-    image = Image.open(BytesIO(base64.b64decode(imgString)))
-    image_array = np.asarray(image)
-    steering_angle = float(model.predict(image_array[None, :, :, :], batch_size=1))
-    throttle = 0.2
-    print(steering_angle, throttle)
-    send_control(steering_angle, throttle)
+    if data:
+        # The current steering angle of the car
+        steering_angle = data["steering_angle"]
+        # The current throttle of the car
+        throttle = data["throttle"]
+        # The current speed of the car
+        speed = data["speed"]
+        # The current image from the center camera of the car
+        imgString = data["image"]
+        image = Image.open(BytesIO(base64.b64decode(imgString)))
+        image_array = np.asarray(image)
+        steering_angle = float(model.predict(image_array[None, :, :, :], batch_size=1))
+        throttle = 0.2
+        print(steering_angle, throttle)
+        send_control(steering_angle, throttle)
 
-    # save frame
-    if args.image_folder != '':
-        timestamp = datetime.utcnow().strftime('%Y_%m_%d_%H_%M_%S_%f')[:-3]
-        image_filename = os.path.join(args.image_folder, timestamp)
-        image.save('{}.jpg'.format(image_filename))
+        # save frame
+        if args.image_folder != '':
+            timestamp = datetime.utcnow().strftime('%Y_%m_%d_%H_%M_%S_%f')[:-3]
+            image_filename = os.path.join(args.image_folder, timestamp)
+            image.save('{}.jpg'.format(image_filename))
+    else:
+        sio.emit('manual', data={}, skip_sid=True)
 
 
 @sio.on('connect')
