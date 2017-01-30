@@ -1,6 +1,6 @@
 # CarND Behavioral Cloning Project (P3)
 
-This repository contains starting files for P3.
+This repository contains starting files for P3, Behavioral Cloning.
 
 ### `drive.py`
 
