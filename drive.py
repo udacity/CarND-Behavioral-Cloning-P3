@@ -44,6 +44,7 @@ def telemetry(sid, data):
             image_filename = os.path.join(args.image_folder, timestamp)
             image.save('{}.jpg'.format(image_filename))
     else:
+        # NOTE: DON'T EDIT THIS.
         sio.emit('manual', data={}, skip_sid=True)
 
 
