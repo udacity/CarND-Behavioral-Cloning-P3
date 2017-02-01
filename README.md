@@ -44,11 +44,11 @@ This lab requires:
 The lab enviroment can be created with CarND Term1 Starter Kit. Click [here](https://github.com/udacity/CarND-Term1-Starter-Kit/blob/master/README.md) for the details.
 
 The following resources can be found in this github repository:
-* simulator
 * drive.py
 * video.py
+* writeup_template.md
 
-We have also provided [sample data](https://d17h27t6h515a5.cloudfront.net/topher/2016/December/584f6edd_data/data.zip) that you can optionally use to help train your model.
+The simulator can be downloaded from the classroom. In the classroom, we have also provided sample that you can optionally use to help train your model.
 
 ## Details About Files In This Directory
 
