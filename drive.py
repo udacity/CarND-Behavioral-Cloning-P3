@@ -12,7 +12,7 @@ from PIL import Image
 from flask import Flask
 from io import BytesIO
 
-from keras.models import model_from_json
+from keras.models import load_model
 
 sio = socketio.Server()
 app = Flask(__name__)
@@ -69,7 +69,7 @@ if __name__ == '__main__':
     parser.add_argument(
         'model',
         type=str,
-        help='Path to model definition json. Model weights should be on the same path.'
+        help='Path to model h5 file. Model should be on the same path.'
     )
     parser.add_argument(
         'image_folder',
@@ -79,18 +79,8 @@ if __name__ == '__main__':
         help='Path to image folder. This is where the images from the run will be saved.'
     )
     args = parser.parse_args()
-    with open(args.model, 'r') as jfile:
-        # NOTE: if you saved the file by calling json.dump(model.to_json(), ...)
-        # then you will have to call:
-        #
-        #   model = model_from_json(json.loads(jfile.read()))\
-        #
-        # instead.
-        model = model_from_json(jfile.read())
 
-    model.compile("adam", "mse")
-    weights_file = args.model.replace('json', 'h5')
-    model.load_weights(weights_file)
+    model = load_model(args.model)
 
     if args.image_folder != '':
         print("Creating image folder at {}".format(args.image_folder))
