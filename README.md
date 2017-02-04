@@ -70,7 +70,7 @@ The above command will load the trained model and use the model to make predicti
 #### Saving a video of the autonomous agent
 
 ```sh
-python drive.py model.json run1
+python drive.py model.h5 run1
 ```
 
 The fourth argument `run1` is the directory to save the images seen by the agent to. If the directory already exists it'll be overwritten.
