@@ -13,6 +13,8 @@ from flask import Flask
 from io import BytesIO
 
 from keras.models import load_model
+import h5py
+from keras import __version__ as keras_version
 
 sio = socketio.Server()
 app = Flask(__name__)
@@ -88,6 +90,15 @@ if __name__ == '__main__':
     )
     args = parser.parse_args()
 
+    # check that model Keras version is same as local Keras version
+    f = h5py.File(args.model, mode='r')
+    model_version = f.attrs.get('keras_version')
+    keras_version = str(keras_version).encode('utf8')
+
+    if model_version != keras_version:
+        print('You are using Keras version ', keras_version,
+            ', but the model was built using ', model_version)
+        
     model = load_model(args.model)
 
     if args.image_folder != '':
