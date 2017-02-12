@@ -1,0 +1,4 @@
+.DS_Store
+*.zip
+__pycache__
+custom-data/

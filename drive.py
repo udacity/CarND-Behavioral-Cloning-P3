@@ -12,15 +12,23 @@ from PIL import Image
 from flask import Flask
 from io import BytesIO
 
-from keras.models import load_model
-import h5py
-from keras import __version__ as keras_version
+# from keras.models import load_model
+# import h5py
+# from keras import __version__ as keras_version
+
+from keras.models import model_from_json
+from keras.preprocessing.image import ImageDataGenerator, array_to_img, img_to_array
+import json
+
+# Fix error with Keras and TensorFlow
+import tensorflow as tf
+tf.python.control_flow_ops = tf
+from model import preprocess_image
 
 sio = socketio.Server()
 app = Flask(__name__)
 model = None
 prev_image_array = None
-
 
 @sio.on('telemetry')
 def telemetry(sid, data):
@@ -31,20 +39,31 @@ def telemetry(sid, data):
         throttle = data["throttle"]
         # The current speed of the car
         speed = data["speed"]
+        speed = float(speed)
         # The current image from the center camera of the car
         imgString = data["image"]
         image = Image.open(BytesIO(base64.b64decode(imgString)))
         image_array = np.asarray(image)
-        steering_angle = float(model.predict(image_array[None, :, :, :], batch_size=1))
-        min_speed = 8
-        max_speed = 10
-        if float(speed) < min_speed:
-            throttle = 1.0
-        elif float(speed) > max_speed:
-            throttle = -1.0
-        else:
-            throttle = 0.1
-        
+
+        # Add the preprocessing step
+        image_array = preprocess_image(image_array)
+
+        transformed_image_array = image_array[None, :, :, :]
+        # This model currently assumes that the features of the model are just the images. Feel free to change this.
+        steering_angle = float(model.predict(transformed_image_array, batch_size=1))
+
+        # min_speed = 8
+        # max_speed = 10
+        # if float(speed) < min_speed:
+        #     throttle = 1.0
+        # elif float(speed) > max_speed:
+        #     throttle = -1.0
+        # else:
+        #     throttle = 0.1
+
+        # Faster
+        throttle = (17.0 - speed) * 0.5
+
         print(steering_angle, throttle)
         send_control(steering_angle, throttle)
 
@@ -54,7 +73,7 @@ def telemetry(sid, data):
             image_filename = os.path.join(args.image_folder, timestamp)
             image.save('{}.jpg'.format(image_filename))
     else:
-        # NOTE: DON'T EDIT THIS.
+        # NOTE: DON'T EDIT THIS.    <--- BUT I WILL!
         sio.emit('manual', data={}, skip_sid=True)
 
 
@@ -90,16 +109,22 @@ if __name__ == '__main__':
     )
     args = parser.parse_args()
 
-    # check that model Keras version is same as local Keras version
-    f = h5py.File(args.model, mode='r')
-    model_version = f.attrs.get('keras_version')
-    keras_version = str(keras_version).encode('utf8')
+    # # check that model Keras version is same as local Keras version
+    # f = h5py.File(args.model, mode='r')
+    # model_version = f.attrs.get('keras_version')
+    # keras_version = str(keras_version).encode('utf8')
 
-    if model_version != keras_version:
-        print('You are using Keras version ', keras_version,
-            ', but the model was built using ', model_version)
-        
-    model = load_model(args.model)
+    # if model_version != keras_version:
+    #     print('You are using Keras version ', keras_version,
+    #         ', but the model was built using ', model_version)
+    
+    # model = load_model(args.model)
+    with open(args.model, 'r') as jfile:
+        model = model_from_json(jfile.read())
+
+    model.compile("adam", "mse")
+    weights_file = args.model.replace('json', 'h5')
+    model.load_weights(weights_file)
 
     if args.image_folder != '':
         print("Creating image folder at {}".format(args.image_folder))
