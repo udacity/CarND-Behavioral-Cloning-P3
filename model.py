@@ -8,7 +8,7 @@ import helper
 
 tf.python.control_flow_ops = tf
 
-number_of_epochs = 10
+number_of_epochs = 8
 number_of_samples_per_epoch = 20032
 number_of_validation_samples = 6400
 learning_rate = 0.0001
@@ -75,4 +75,3 @@ history = model.fit_generator(train_gen,
 
 # finally save our model and weights
 helper.save_model(model)
-
