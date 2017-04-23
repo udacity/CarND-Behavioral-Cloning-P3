@@ -1,8 +1,7 @@
 import os
-#import matplotlib.pyplot as plt
 import pandas as pd
-
-from src.utils.general_utils import rebalanced_set, continuous_to_bins, generate_data_from, create_train_val_from
+from sklearn.model_selection import train_test_split
+from src.utils.general_utils import rebalanced_set, continuous_to_bins, generate_driving_data_from
 
 from keras.models import Sequential
 from keras.layers.core import Flatten, Dense, Dropout
@@ -14,27 +13,24 @@ data_path = 'data'
 model_path = 'logs'
 model_name = 'LeNet_DropOut.h5'
 input_img_shape = [160, 320, 3]
-batch_size = 128
+batch_size = 512
 n_bins = 7
-val_portion = 0.1
+val_portion = 0.15
 
-desriptor = pd.read_csv(os.path.join(data_path, csv_file_name))
+descriptor = pd.read_csv(os.path.join(data_path, csv_file_name))
 
-# Utility functions to:
-# create paths to images
-create_paths_to_images = lambda x: [os.path.join(data_path, v) for v in x]
-# split the dataset into training and validation data
+"""
+import matplotlib.pyplot as plt
+n, bins, patches = plt.hist(descriptor.steering, bins=n_bins, color='grey')
+plt.xlabel('Classes')
+plt.ylabel('Samples')
+plt.show()
+"""
 
-#n, bins, patches = plt.hist(desriptor.steering, bins=n_bins, color='grey')
-
-#plt.xlabel('Classes')
-#plt.ylabel('Samples')
-#plt.show()
-
-Y_train_binned = continuous_to_bins(desriptor.steering, n_bins=n_bins)
+Y_train_binned = continuous_to_bins(descriptor.steering, n_bins=n_bins)
 binned_indices = rebalanced_set(Y_train_binned)
 
-train_indices, val_indices = create_train_val_from(binned_indices, portion_of_val_set=val_portion)
+train_indices, val_indices = train_test_split(binned_indices, test_size=val_portion)
 print("Training set size: {}, Validation set size: {}".format(len(train_indices), len(val_indices)))
 
 
@@ -57,13 +53,10 @@ model.summary() #prints a summary representation of your model.
 model_config = model.get_config()
 #model = Sequential.from_config(model_config)
 
-paths_to_images = create_paths_to_images(desriptor.center)
-
-
-model.fit_generator(generate_data_from(train_indices, paths_to_images, desriptor.steering, batch_size),
+model.fit_generator(generate_driving_data_from(train_indices, descriptor, batch_size, data_path),
                     samples_per_epoch=len(train_indices)//batch_size,
-                    nb_epoch=4,
-                    validation_data=generate_data_from(train_indices, paths_to_images, desriptor.steering, batch_size),
+                    nb_epoch=5,
+                    validation_data=generate_driving_data_from(val_indices, descriptor, batch_size, data_path),
                     nb_val_samples=len(val_indices)//batch_size)
 
 

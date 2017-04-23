@@ -1,7 +1,8 @@
 import numpy as np
-import cv2
+import cv2, os
 from sklearn.utils import shuffle
 
+create_paths_to_images = lambda x, data_path: [os.path.join(data_path, v) for v in x]
 
 def continuous_to_bins(vector, n_bins=9):
     vector = np.array(vector)
@@ -60,11 +61,36 @@ def generate_data_from(rebalanced_index, paths_to_images, measurements, batch_sz
                 yield (np.array([read_img(i) for i in rebalanced_index[start:end]]),
                        measurements[rebalanced_index[start:end]])
 
-def create_train_val_from(dataset, portion_of_val_set=0.2):
-    split = int(len(dataset)*portion_of_val_set)
-    dataset = shuffle(dataset)
 
-    return dataset[split:], dataset[:split]
+def generate_driving_data_from(rebalanced_indices, descriptor, batch_sz=32, data_path='data'):
+    epoch_sz = len(rebalanced_indices)
+    paths_to_images = np.array(create_paths_to_images(descriptor.center, data_path))
+    measurements = np.array(descriptor.steering)
+
+    read_img = lambda x: cv2.imread(paths_to_images[x])
+    horizontal_flip = lambda x: cv2.flip(x, 0)
+    def augmentation(i):
+        im, m = read_img(i), measurements[i]
+        if i % 2 == 0:
+            im = horizontal_flip(im)
+            m = -m
+        return im, m
+
+    while True:
+        rebalanced_index = shuffle(rebalanced_indices)
+        if batch_sz is None:
+            for i in rebalanced_index:
+                im, m = augmentation(i)
+                yield (im, m)
+        else:
+            for start, end in zip(range(0, epoch_sz, batch_sz),
+                                  range(batch_sz, epoch_sz + 1, batch_sz)):
+                ims, ms = [],[]
+                for i in rebalanced_index[start:end]:
+                    im, m = augmentation(i)
+                    ims.append(im)
+                    ms.append(m)
+                yield (np.array(ims), np.array(ms))
 
 
 
