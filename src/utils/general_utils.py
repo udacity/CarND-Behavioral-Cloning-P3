@@ -62,7 +62,8 @@ def generate_data_from(rebalanced_index, paths_to_images, measurements, batch_sz
                        measurements[rebalanced_index[start:end]])
 
 
-def generate_driving_data_from(rebalanced_indices, descriptor, batch_sz=32, data_path='data'):
+"""
+def generate_driving_data_with_flip_augmentation_from(rebalanced_indices, descriptor, batch_sz=32, data_path='data'):
     epoch_sz = len(rebalanced_indices)
     paths_to_images = np.array(create_paths_to_images(descriptor.center, data_path))
     measurements = np.array(descriptor.steering)
@@ -90,6 +91,27 @@ def generate_driving_data_from(rebalanced_indices, descriptor, batch_sz=32, data
                     im, m = augmentation(i)
                     ims.append(im)
                     ms.append(m)
+                yield (np.array(ims), np.array(ms))
+"""
+
+def generate_driving_data_from(rebalanced_indices, descriptor, batch_sz=32, data_path='data'):
+    epoch_sz = len(rebalanced_indices)
+    paths_to_images = np.array(create_paths_to_images(descriptor.center, data_path))
+    measurements = np.array(descriptor.steering)
+
+    read_img = lambda x: cv2.imread(paths_to_images[x])
+
+    while True:
+        rebalanced_index = shuffle(rebalanced_indices)
+        if batch_sz is None:
+            for i in rebalanced_index:
+                im, m = read_img(i), measurements[i]
+                yield (im, m)
+        else:
+            for start, end in zip(range(0, epoch_sz, batch_sz),
+                                  range(batch_sz, epoch_sz + 1, batch_sz)):
+                ims = [read_img(i) for i in rebalanced_index[start:end]]
+                ms = measurements[rebalanced_index[start:end]]
                 yield (np.array(ims), np.array(ms))
 
 

@@ -8,22 +8,27 @@ from keras.layers.core import Flatten, Dense, Dropout
 from keras.layers.convolutional import Convolution2D, MaxPooling2D
 from keras.layers import Lambda
 
-tf.app.flags.DEFINE_string('data_location',
-                           'data',
-                           'Define the location of the data folder containing csv descriptor and IMG folder - Default: data')
-tf.app.flags.DEFINE_string('logs_location',
-                           'logs',
-                           'Define the location of the logs folder. It will be used for storing models - Default: logs')
-tf.app.flags.DEFINE_string('descriptor_name',
-                           'driving_log.csv',
-                           'Provide the name of the data descriptor - Default: driving_log.csv')
-tf.app.flags.DEFINE_string('model_name',
-                           'LeNet_DropOut.h5',
-                           'Provide the name of the data descriptor - Default: LeNet_DropOut.h5')
-tf.app.flags.DEFINE_integer('batch_size',512,'Provide the batch size - Default: 512')
-tf.app.flags.DEFINE_integer('epocs',5,'Specify the number of epocs for the training - Default: 5')
-tf.app.flags.DEFINE_float('val_portion', 0.15, 'Define the portion of the dataset used for validation')
-FLAGS = tf.app.flags.FLAGS
+tf.flags.DEFINE_string('data_location',
+                       'data',
+                       'Define the location of the data folder containing csv descriptor and IMG folder - Default: data')
+tf.flags.DEFINE_string('logs_location',
+                       'logs',
+                       'Define the location of the logs folder. It will be used for storing models - Default: logs')
+tf.flags.DEFINE_string('descriptor_name',
+                       'driving_log.csv',
+                       'Provide the name of the data descriptor - Default: driving_log.csv')
+tf.flags.DEFINE_string('model_name',
+                       'LeNet_DropOut.h5',
+                       'Provide the name of the data descriptor - Default: LeNet_DropOut.h5')
+tf.flags.DEFINE_integer('batch_size',512,
+                        'Provide the batch size - Default: 512')
+tf.flags.DEFINE_integer('epochs',5,
+                        'Specify the number of epochs for the training - Default: 5')
+tf.flags.DEFINE_integer('bins',7,
+                        'Specify the number of bins used to rebalance the data - Default: 7')
+tf.flags.DEFINE_float('val_portion', 0.15,
+                      'Define the portion of the dataset used for validation')
+FLAGS = tf.flags.FLAGS
 csv_file_name=FLAGS.descriptor_name
 data_path = FLAGS.data_location
 model_path = FLAGS.logs_location
@@ -32,7 +37,7 @@ batch_size = FLAGS.batch_size
 val_portion = FLAGS.val_portion
 
 input_img_shape = [160, 320, 3]
-n_bins = 7
+n_bins = FLAGS.bins
 
 descriptor = pd.read_csv(os.path.join(data_path, csv_file_name))
 
@@ -65,18 +70,17 @@ model.add(Dense(120))
 model.add(Dropout(0.25))
 model.add(Dense(84))
 model.add(Dense(1))
-model.compile(loss='mse', optimizer='adam')
+model.compile(loss='mse', optimizer='adam', metrics=['accuracy'])
 model.summary() #prints a summary representation of your model.
 model_config = model.get_config()
 #model = Sequential.from_config(model_config)
 
+
 model.fit_generator(generate_driving_data_from(train_indices, descriptor, batch_size, data_path),
                     samples_per_epoch=len(train_indices)//batch_size,
-                    nb_epoch=FLAGS.epocs,
+                    nb_epoch=FLAGS.epochs,
                     validation_data=generate_driving_data_from(val_indices, descriptor, batch_size, data_path),
                     nb_val_samples=len(val_indices)//batch_size)
-
-
 
 model.save(os.path.join(model_path, model_name))
 
