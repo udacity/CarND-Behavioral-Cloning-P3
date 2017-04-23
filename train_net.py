@@ -74,7 +74,9 @@ model.add(Dense(120))
 model.add(Dropout(0.25))
 model.add(Dense(84))
 model.add(Dense(1))
-model.compile(loss='mse', optimizer='adam', metrics=['accuracy'])
+
+optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
+model.compile(loss='mse', optimizer=optimizer, metrics=['accuracy'])
 model.summary() #prints a summary representation of your model.
 model_config = model.get_config()
 #model = Sequential.from_config(model_config)
