@@ -8,6 +8,7 @@ from keras.layers.core import Flatten, Dense, Dropout
 from keras.layers.convolutional import Convolution2D, MaxPooling2D
 from keras.layers import Lambda
 from keras.layers.normalization import BatchNormalization
+import keras.backend.tensorflow_backend as K
 
 tf.flags.DEFINE_string('data_location',
                        'data',
@@ -76,6 +77,9 @@ model.add(Dense(84))
 model.add(Dense(1))
 
 optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
+
+K.set_session(tf.Session(config=K.tf.ConfigProto(allow_soft_placement=True, log_device_placement=True)))
+
 model.compile(loss='mse', optimizer=optimizer, metrics=['accuracy'])
 model.summary() #prints a summary representation of your model.
 model_config = model.get_config()
