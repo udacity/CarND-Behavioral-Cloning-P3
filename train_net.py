@@ -1,21 +1,37 @@
 import os
 import pandas as pd
+import tensorflow as tf
 from sklearn.model_selection import train_test_split
 from src.utils.general_utils import rebalanced_set, continuous_to_bins, generate_driving_data_from
-
 from keras.models import Sequential
 from keras.layers.core import Flatten, Dense, Dropout
 from keras.layers.convolutional import Convolution2D, MaxPooling2D
 from keras.layers import Lambda
 
-csv_file_name='driving_log.csv'
-data_path = 'data'
-model_path = 'logs'
-model_name = 'LeNet_DropOut.h5'
+tf.app.flags.DEFINE_string('data_location',
+                           'data',
+                           'Define the location of the data folder containing csv descriptor and IMG folder - Default: data')
+tf.app.flags.DEFINE_string('logs_location',
+                           'logs',
+                           'Define the location of the logs folder. It will be used for storing models - Default: logs')
+tf.app.flags.DEFINE_string('descriptor_name',
+                           'driving_log.csv',
+                           'Provide the name of the data descriptor - Default: driving_log.csv')
+tf.app.flags.DEFINE_string('model_name',
+                           'LeNet_DropOut.h5',
+                           'Provide the name of the data descriptor - Default: LeNet_DropOut.h5')
+tf.app.flags.DEFINE_integer('batch_size',512,'Provide the batch size - Default: 512')
+tf.app.flags.DEFINE_float('val_portion', 0.15, 'Define the portion of the dataset used for validation')
+FLAGS = tf.app.flags.FLAGS
+csv_file_name=FLAGS.descriptor_name
+data_path = FLAGS.data_location
+model_path = FLAGS.logs_location
+model_name = FLAGS.model_name
+batch_size = FLAGS.batch_size
+val_portion = FLAGS.val_portion
+
 input_img_shape = [160, 320, 3]
-batch_size = 512
 n_bins = 7
-val_portion = 0.15
 
 descriptor = pd.read_csv(os.path.join(data_path, csv_file_name))
 
