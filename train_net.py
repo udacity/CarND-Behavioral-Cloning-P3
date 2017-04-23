@@ -21,6 +21,7 @@ tf.app.flags.DEFINE_string('model_name',
                            'LeNet_DropOut.h5',
                            'Provide the name of the data descriptor - Default: LeNet_DropOut.h5')
 tf.app.flags.DEFINE_integer('batch_size',512,'Provide the batch size - Default: 512')
+tf.app.flags.DEFINE_integer('epocs',5,'Specify the number of epocs for the training - Default: 5')
 tf.app.flags.DEFINE_float('val_portion', 0.15, 'Define the portion of the dataset used for validation')
 FLAGS = tf.app.flags.FLAGS
 csv_file_name=FLAGS.descriptor_name
@@ -71,7 +72,7 @@ model_config = model.get_config()
 
 model.fit_generator(generate_driving_data_from(train_indices, descriptor, batch_size, data_path),
                     samples_per_epoch=len(train_indices)//batch_size,
-                    nb_epoch=5,
+                    nb_epoch=FLAGS.epocs,
                     validation_data=generate_driving_data_from(val_indices, descriptor, batch_size, data_path),
                     nb_val_samples=len(val_indices)//batch_size)
 
