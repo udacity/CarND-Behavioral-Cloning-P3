@@ -77,8 +77,9 @@ model.add(Dense(84))
 model.add(Dense(1))
 
 optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
-
-K.set_session(tf.Session(config=K.tf.ConfigProto(allow_soft_placement=True, log_device_placement=True)))
+config = K.tf.ConfigProto(allow_soft_placement=True, log_device_placement=True)
+config.gpu_options.allow_growth = True
+K.set_session(tf.Session(config=config))
 
 model.compile(loss='mse', optimizer=optimizer, metrics=['accuracy'])
 model.summary() #prints a summary representation of your model.
