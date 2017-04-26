@@ -6,7 +6,7 @@ from src.utils.general_utils import rebalanced_set, continuous_to_bins, generate
 from keras.models import Sequential
 from keras.layers.core import Flatten, Dense, Dropout
 from keras.layers.convolutional import Convolution2D, MaxPooling2D
-from keras.layers import Lambda
+from keras.layers import Lambda, Cropping2D
 from keras.layers.normalization import BatchNormalization
 import keras.backend.tensorflow_backend as K
 
@@ -59,7 +59,8 @@ print("Training set size: {}, Validation set size: {}".format(len(train_indices)
 
 
 model = Sequential()
-model.add(Lambda(lambda x: (x/255.0)-0.5, input_shape=input_img_shape))
+model.add(Cropping2D(cropping=((50,20),(0,0)), input_shape=input_img_shape))
+model.add(Lambda(lambda x: (x/255.0)-0.5))
 model.add(Convolution2D(6, (5, 5), activation="relu"))
 model.add(MaxPooling2D())
 model.add(BatchNormalization())
@@ -76,12 +77,11 @@ model.add(Dropout(0.25))
 model.add(Dense(84))
 model.add(Dense(1))
 
-optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
-config = K.tf.ConfigProto(allow_soft_placement=True, log_device_placement=True)
+config = K.tf.ConfigProto(allow_soft_placement=True)
 config.gpu_options.allow_growth = True
 K.set_session(tf.Session(config=config))
 
-model.compile(loss='mse', optimizer=optimizer, metrics=['accuracy'])
+model.compile(loss='mse', optimizer='adam', metrics=['accuracy'])
 model.summary() #prints a summary representation of your model.
 model_config = model.get_config()
 #model = Sequential.from_config(model_config)
