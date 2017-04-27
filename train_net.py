@@ -66,15 +66,15 @@ print("Training set size: {}, Validation set size: {}".format(len(train_indices)
 model = Sequential()
 model.add(Cropping2D(cropping=((50,20),(0,0)), input_shape=input_img_shape))
 model.add(Lambda(lambda x: (x/255.0)-0.5))
-model.add(Convolution2D(6, (5, 5), activation="relu"))
+model.add(Convolution2D(6, 5, 5, activation="relu"))
 model.add(MaxPooling2D())
 model.add(BatchNormalization())
-model.add(Convolution2D(16, (5, 5), activation="relu"))
+model.add(Convolution2D(16, 5, 5, activation="relu"))
 model.add(MaxPooling2D())
 model.add(BatchNormalization())
-model.add(Convolution2D(32, (3, 3), activation="relu"))
+model.add(Convolution2D(32, 3, 3, activation="relu"))
 model.add(BatchNormalization())
-model.add(Convolution2D(32, (3, 3), activation="relu"))
+model.add(Convolution2D(32, 3, 3, activation="relu"))
 model.add(MaxPooling2D())
 model.add(Flatten())
 model.add(Dense(120))
@@ -94,10 +94,10 @@ model_config = model.get_config()
 
 model.fit_generator(generate_data_with_augmentation_from(train_indices, descriptor, batch_size,
                                                          data_path, FLAGS.flip, FLAGS.shift, FLAGS.shift_value),
-                    samples_per_epoch=len(train_indices)//batch_size,
+                    samples_per_epoch=len(train_indices),
                     nb_epoch=FLAGS.epochs,
                     validation_data=generate_driving_data_from(val_indices, descriptor, batch_size, data_path),
-                    nb_val_samples=len(val_indices)//batch_size)
+                    nb_val_samples=len(val_indices))
 
 model.save(os.path.join(model_path, model_name))
 
