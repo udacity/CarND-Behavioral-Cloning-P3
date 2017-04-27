@@ -62,19 +62,43 @@ def generate_data_from(rebalanced_index, paths_to_images, measurements, batch_sz
                        measurements[rebalanced_index[start:end]])
 
 
-"""
-def generate_driving_data_with_flip_augmentation_from(rebalanced_indices, descriptor, batch_sz=32, data_path='data'):
+
+def generate_data_with_augmentation_from(rebalanced_indices,
+                                         descriptor,
+                                         batch_sz=32,
+                                         data_path='data',
+                                         random_flip=True,
+                                         shift=True,
+                                         shift_value=0.1):
+
     epoch_sz = len(rebalanced_indices)
-    paths_to_images = np.array(create_paths_to_images(descriptor.center, data_path))
+
+    center_path = np.array(create_paths_to_images(descriptor.center, data_path))
+    left_path = np.array(create_paths_to_images(descriptor.left, data_path))
+    right_path = np.array(create_paths_to_images(descriptor.right, data_path))
+
+    shift_path_and_value = [[left_path, shift_value], [center_path, 0.0], [right_path, -shift_value]]
+    number_of_shift_options = len(shift_path_and_value)
+
     measurements = np.array(descriptor.steering)
 
-    read_img = lambda x: cv2.imread(paths_to_images[x])
-    horizontal_flip = lambda x: cv2.flip(x, 0)
+    read_img = lambda x, paths: cv2.imread(paths[x])
+    horizontal_flip = lambda x, m: (cv2.flip(x, 0), -m)
+    no_flip = lambda x, m: (x, m)
+
     def augmentation(i):
-        im, m = read_img(i), measurements[i]
-        if i % 2 == 0:
-            im = horizontal_flip(im)
-            m = -m
+        if shift:
+            choice = np.random.randint(0, number_of_shift_options-1)
+            paths, selected_shift_value = shift_path_and_value[choice]
+        else:
+            paths, selected_shift_value = center_path, 0.0
+
+        im, m = read_img(i, paths), measurements[i] + selected_shift_value
+
+        if random_flip:
+            flip_choice = np.random.choice([horizontal_flip, no_flip])
+            im, m = flip_choice(im, m)
+
         return im, m
 
     while True:
@@ -92,26 +116,24 @@ def generate_driving_data_with_flip_augmentation_from(rebalanced_indices, descri
                     ims.append(im)
                     ms.append(m)
                 yield (np.array(ims), np.array(ms))
-"""
 
-def generate_driving_data_from(rebalanced_indices, descriptor, batch_sz=32, data_path='data'):
-    epoch_sz = len(rebalanced_indices)
+
+def generate_driving_data_from(indices, descriptor, batch_sz=32, data_path='data'):
     paths_to_images = np.array(create_paths_to_images(descriptor.center, data_path))
     measurements = np.array(descriptor.steering)
 
-    read_img = lambda x: cv2.imread(paths_to_images[x])
+    epoch_sz = len(indices)
 
     while True:
-        rebalanced_index = shuffle(rebalanced_indices)
         if batch_sz is None:
-            for i in rebalanced_index:
-                im, m = read_img(i), measurements[i]
+            for p,m in zip(paths_to_images[indices], measurements[indices]):
+                im, m = cv2.imread(p), m
                 yield (im, m)
         else:
             for start, end in zip(range(0, epoch_sz, batch_sz),
                                   range(batch_sz, epoch_sz + 1, batch_sz)):
-                ims = [read_img(i) for i in rebalanced_index[start:end]]
-                ms = measurements[rebalanced_index[start:end]]
+                ims = [cv2.imread(p) for p in paths_to_images[indices[start:end]]]
+                ms = measurements[indices[start:end]]
                 yield (np.array(ims), np.array(ms))
 
 

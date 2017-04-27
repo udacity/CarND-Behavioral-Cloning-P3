@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
-from src.utils.general_utils import rebalanced_set, continuous_to_bins, generate_driving_data_from
+from src.utils.general_utils import rebalanced_set, continuous_to_bins, generate_data_with_augmentation_from, generate_driving_data_from
 from keras.models import Sequential
 from keras.layers.core import Flatten, Dense, Dropout
 from keras.layers.convolutional import Convolution2D, MaxPooling2D
@@ -30,6 +30,11 @@ tf.flags.DEFINE_integer('bins',7,
                         'Specify the number of bins used to rebalance the data - Default: 7')
 tf.flags.DEFINE_float('val_portion', 0.15,
                       'Define the portion of the dataset used for validation')
+tf.flags.DEFINE_float('shift_value', 0.05,
+                      'Define the shift value for cameras - Default: 0.05')
+tf.flags.DEFINE_bool('shift', True, "Camera shift augmentation is set for True. Set for False to turn off.")
+tf.flags.DEFINE_bool('flip', True, "Camera flip augmentation is set for True. Set for False to turn off.")
+
 FLAGS = tf.flags.FLAGS
 csv_file_name=FLAGS.descriptor_name
 data_path = FLAGS.data_location
@@ -87,7 +92,8 @@ model_config = model.get_config()
 #model = Sequential.from_config(model_config)
 
 
-model.fit_generator(generate_driving_data_from(train_indices, descriptor, batch_size, data_path),
+model.fit_generator(generate_data_with_augmentation_from(train_indices, descriptor, batch_size,
+                                                         data_path, FLAGS.flip, FLAGS.shift, FLAGS.shift_value),
                     samples_per_epoch=len(train_indices)//batch_size,
                     nb_epoch=FLAGS.epochs,
                     validation_data=generate_driving_data_from(val_indices, descriptor, batch_size, data_path),
