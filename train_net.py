@@ -1,12 +1,15 @@
 import os
 import pandas as pd
+import numpy as np
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
-from src.utils.general_utils import rebalanced_set, continuous_to_bins, generate_data_with_augmentation_from, generate_driving_data_from
+from src.utils.general_utils import rebalanced_set, \
+    continuous_to_bins, generate_data_with_augmentation_from, create_paths_to_images
 from keras.models import Sequential
 from keras.layers.core import Flatten, Dense, Dropout
 from keras.layers.convolutional import Convolution2D, MaxPooling2D
 from keras.layers import Lambda, Cropping2D
+from keras.optimizers import Adam
 from keras.layers.normalization import BatchNormalization
 import keras.backend.tensorflow_backend as K
 
@@ -41,12 +44,20 @@ data_path = FLAGS.data_location
 model_path = FLAGS.logs_location
 model_name = FLAGS.model_name
 batch_size = FLAGS.batch_size
-val_portion = FLAGS.val_portion
 
 input_img_shape = [160, 320, 3]
-n_bins = FLAGS.bins
 
 descriptor = pd.read_csv(os.path.join(data_path, csv_file_name))
+
+if FLAGS.shift:
+    train_steering,val_steering, train_paths_center,val_paths, train_paths_left, _, train_paths_right, _ = \
+        train_test_split(descriptor.steering, descriptor.center, descriptor.left, descriptor.right, test_size=FLAGS.val_portion)
+    train_paths = np.concatenate((train_paths_left, train_paths_center, train_paths_right))
+    train_steering = np.concatenate((train_steering + FLAGS.shift, train_steering, train_steering - FLAGS.shift))
+else:
+    train_steering, train_paths, val_steering, val_paths = train_test_split(descriptor.steering, descriptor.center, test_size=FLAGS.val_portion)
+
+train_paths, val_paths = create_paths_to_images(train_paths, FLAGS.data_location), create_paths_to_images(val_paths, FLAGS.data_location)
 
 """
 import matplotlib.pyplot as plt
@@ -56,11 +67,11 @@ plt.ylabel('Samples')
 plt.show()
 """
 
-Y_train_binned = continuous_to_bins(descriptor.steering, n_bins=n_bins)
+Y_train_binned = continuous_to_bins(train_steering, n_bins=FLAGS.bins)
 binned_indices = rebalanced_set(Y_train_binned)
 
-train_indices, val_indices = train_test_split(binned_indices, test_size=val_portion)
-print("Training set size: {}, Validation set size: {}".format(len(train_indices), len(val_indices)))
+train_paths, train_steering = train_paths[binned_indices], train_steering[binned_indices]
+print("Training set size: {}, Validation set size: {}".format(len(train_paths), len(val_steering)))
 
 
 model = Sequential()
@@ -86,18 +97,17 @@ config = K.tf.ConfigProto(allow_soft_placement=True)
 config.gpu_options.allow_growth = True
 K.set_session(tf.Session(config=config))
 
-model.compile(loss='mse', optimizer='adam', metrics=['accuracy'])
+model.compile(loss='mse', optimizer=Adam(1e-5), metrics=['accuracy'])
 model.summary() #prints a summary representation of your model.
 model_config = model.get_config()
 #model = Sequential.from_config(model_config)
 
 
-model.fit_generator(generate_data_with_augmentation_from(train_indices, descriptor, batch_size,
-                                                         data_path, FLAGS.flip, FLAGS.shift, FLAGS.shift_value),
-                    samples_per_epoch=len(train_indices),
+model.fit_generator(generate_data_with_augmentation_from(train_paths, train_steering, batch_size, FLAGS.flip),
+                    samples_per_epoch=len(train_steering),
                     nb_epoch=FLAGS.epochs,
-                    validation_data=generate_driving_data_from(val_indices, descriptor, batch_size, data_path),
-                    nb_val_samples=len(val_indices))
+                    validation_data=generate_data_with_augmentation_from(val_paths, val_steering, batch_size, False),
+                    nb_val_samples=len(val_steering))
 
 model.save(os.path.join(model_path, model_name))
 
