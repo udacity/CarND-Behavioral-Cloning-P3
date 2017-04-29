@@ -55,7 +55,7 @@ if FLAGS.shift:
     train_paths = np.concatenate((train_paths_left, train_paths_center, train_paths_right))
     train_steering = np.concatenate((train_steering + FLAGS.shift, train_steering, train_steering - FLAGS.shift))
 else:
-    train_steering, train_paths, val_steering, val_paths = train_test_split(descriptor.steering, descriptor.center, test_size=FLAGS.val_portion)
+    train_steering, val_steering, train_paths, val_paths = train_test_split(descriptor.steering, descriptor.center, test_size=FLAGS.val_portion)
 
 train_paths, val_paths = create_paths_to_images(train_paths, FLAGS.data_location), create_paths_to_images(val_paths, FLAGS.data_location)
 
