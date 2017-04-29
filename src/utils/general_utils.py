@@ -4,6 +4,14 @@ from sklearn.utils import shuffle
 
 create_paths_to_images = lambda x, data_path: np.array([os.path.join(data_path, v) for v in x])
 
+def ensure_valid_values(paths, measure):
+    paths = np.array(paths)
+    measure = np.array(measure)
+    for i in range(len(measure)):
+        if not(os.path.exists(paths[i])) or (type(measure[i])==float):
+            np.delete(paths,i), np.delete(measure,i)
+    return paths, measure
+
 def continuous_to_bins(vector, n_bins=9):
     vector = np.array(vector)
     shape = vector.shape

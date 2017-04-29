@@ -4,7 +4,8 @@ import numpy as np
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
 from src.utils.general_utils import rebalanced_set, \
-    continuous_to_bins, generate_data_with_augmentation_from, create_paths_to_images
+    continuous_to_bins, generate_data_with_augmentation_from,\
+    create_paths_to_images, ensure_valid_values
 from keras.models import Sequential
 from keras.layers.core import Flatten, Dense, Dropout
 from keras.layers.convolutional import Convolution2D, MaxPooling2D
@@ -69,6 +70,9 @@ plt.show()
 
 Y_train_binned = continuous_to_bins(train_steering, n_bins=FLAGS.bins)
 binned_indices = rebalanced_set(Y_train_binned)
+
+train_paths, train_steering = ensure_valid_values(train_paths, train_steering)
+val_paths, val_steering = ensure_valid_values(val_paths, val_steering)
 
 train_paths, train_steering = train_paths[binned_indices], train_steering[binned_indices]
 print("Training set size: {}, Validation set size: {}".format(len(train_paths), len(val_steering)))
