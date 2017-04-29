@@ -7,8 +7,8 @@ from src.utils.general_utils import rebalanced_set, \
     continuous_to_bins, generate_data_with_augmentation_from,\
     create_paths_to_images, ensure_valid_values
 from keras.models import Sequential
-from keras.layers.core import Flatten, Dense, Dropout
-from keras.layers.convolutional import Convolution2D, MaxPooling2D
+from keras.layers.core import Flatten, Dense, Dropout, Highway
+from keras.layers.convolutional import Convolution2D
 from keras.layers import Lambda, Cropping2D
 from keras.optimizers import Adam
 from keras.layers.normalization import BatchNormalization
@@ -81,28 +81,42 @@ print("Training set size: {}, Validation set size: {}".format(len(train_paths), 
 model = Sequential()
 model.add(Cropping2D(cropping=((50,20),(0,0)), input_shape=input_img_shape))
 model.add(Lambda(lambda x: (x/255.0)-0.5))
-model.add(Convolution2D(8, 3, 3, border_mode='same', activation="relu"))
-model.add(Convolution2D(8, 3, 3, subsample=(2,2), border_mode='same', activation="relu"))
-model.add(Convolution2D(16, 3, 3, border_mode='same', activation="relu"))
-model.add(Convolution2D(16, 3, 3, subsample=(2,2), border_mode='same', activation="relu"))
-model.add(Convolution2D(32, 3, 3, border_mode='same', activation="relu"))
-model.add(Convolution2D(32, 3, 3, subsample=(2,2), border_mode='same', activation="relu"))
-model.add(Convolution2D(64, 3, 3, border_mode='same', activation="relu"))
-model.add(Convolution2D(64, 3, 3, subsample=(2,2), border_mode='same', activation="relu"))
-model.add(Convolution2D(128, 3, 3, border_mode='same', activation="relu"))
-model.add(Convolution2D(128, 3, 3, subsample=(2,2), border_mode='same', activation="relu"))
+model.add(BatchNormalization())
+model.add(Convolution2D(16, 3, 3, border_mode='same', activation="elu"))
+model.add(Convolution2D(16, 3, 3, border_mode='same', activation="elu"))
+model.add(Convolution2D(16, 3, 3, subsample=(2,2), border_mode='same', activation="elu"))
+model.add(BatchNormalization())
+model.add(Convolution2D(32, 3, 3, border_mode='same', activation="elu"))
+model.add(Convolution2D(32, 3, 3, border_mode='same', activation="elu"))
+model.add(Convolution2D(32, 3, 3, subsample=(2,2), border_mode='same', activation="elu"))
+model.add(BatchNormalization())
+model.add(Convolution2D(64, 3, 3, border_mode='same', activation="elu"))
+model.add(Convolution2D(64, 3, 3, border_mode='same', activation="elu"))
+model.add(Convolution2D(64, 3, 3, subsample=(2,2), border_mode='same', activation="elu"))
+model.add(BatchNormalization())
+model.add(Convolution2D(128, 3, 3, border_mode='same', activation="elu"))
+model.add(Convolution2D(128, 3, 3, border_mode='same', activation="elu"))
+model.add(Convolution2D(128, 3, 3, subsample=(2,2), border_mode='same', activation="elu"))
+model.add(BatchNormalization())
+model.add(Convolution2D(128, 3, 3, border_mode='same', activation="elu"))
+model.add(Convolution2D(128, 3, 3, border_mode='same', activation="elu"))
+model.add(Convolution2D(128, 3, 3, subsample=(2,2), border_mode='same', activation="elu"))
+model.add(BatchNormalization())
+model.add(Convolution2D(256, 3, 3, border_mode='same', activation="elu"))
+model.add(Convolution2D(256, 3, 3, border_mode='same', activation="elu"))
+model.add(Convolution2D(256, 3, 3, subsample=(2,2), border_mode='same', activation="elu"))
 model.add(Flatten())
-model.add(Dense(200, activation='relu'))
 model.add(Dropout(0.25))
-model.add(Dense(100, activation='relu'))
-model.add(Dense(10, activation='relu'))
+model.add(Dense(200, activation='elu'))
+model.add(Dense(100, activation='elu'))
+model.add(Dense(10, activation='elu'))
 model.add(Dense(1))
 
 config = K.tf.ConfigProto(allow_soft_placement=True)
 config.gpu_options.allow_growth = True
 K.set_session(tf.Session(config=config))
 
-model.compile(loss='mse', optimizer=Adam(1e-5), metrics=['accuracy'])
+model.compile(loss='mse', optimizer=Adam(1e-4), metrics=['accuracy'])
 model.summary() #prints a summary representation of your model.
 model_config = model.get_config()
 #model = Sequential.from_config(model_config)
