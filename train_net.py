@@ -81,7 +81,7 @@ print("Training set size: {}, Validation set size: {}".format(len(train_paths), 
 
 
 model = Sequential()
-model.add(Cropping2D(cropping=((50,20),(0,0)), input_shape=input_img_shape))
+model.add(Cropping2D(cropping=((70,20),(0,0)), input_shape=input_img_shape))
 model.add(Lambda(lambda x: (x/255.0)-0.5))
 model.add(Convolution2D(int(16*FLAGS.width), 3, 3, border_mode='same', activation="elu"))
 model.add(Convolution2D(int(16*FLAGS.width), 3, 3, border_mode='same', activation="elu"))
