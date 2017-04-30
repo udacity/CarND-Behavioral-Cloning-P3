@@ -6,13 +6,10 @@ from sklearn.model_selection import train_test_split
 from src.utils.general_utils import rebalanced_set, \
     continuous_to_bins, generate_data_with_augmentation_from,\
     create_paths_to_images, ensure_valid_values
-from keras.models import Sequential
-from keras.layers.core import Flatten, Dense, Dropout, Highway
-from keras.layers.convolutional import Convolution2D
-from keras.layers import Lambda, Cropping2D
 from keras.optimizers import Adam
-from keras.layers.normalization import BatchNormalization
 import keras.backend.tensorflow_backend as K
+
+from src.Models.SimplifiedModel import SimplifiedModel
 
 tf.flags.DEFINE_string('data_location',
                        'data',
@@ -32,6 +29,10 @@ tf.flags.DEFINE_integer('epochs',5,
                         'Specify the number of epochs for the training - Default: 5')
 tf.flags.DEFINE_integer('bins',7,
                         'Specify the number of bins used to rebalance the data - Default: 7')
+tf.flags.DEFINE_integer('top_crop',50,
+                        'Specify the number pixels to be cropped form the top - Default: 50')
+tf.flags.DEFINE_integer('bottom_crop',20,
+                        'Specify the number pixels to be cropped on the bottom - Default: 20')
 tf.flags.DEFINE_float('val_portion', 0.15,
                       'Define the portion of the dataset used for validation')
 tf.flags.DEFINE_float('shift_value', 0.05,
@@ -54,7 +55,8 @@ descriptor = pd.read_csv(os.path.join(data_path, csv_file_name))
 
 if FLAGS.shift:
     train_steering,val_steering, train_paths_center,val_paths, train_paths_left, _, train_paths_right, _ = \
-        train_test_split(descriptor.steering, descriptor.center, descriptor.left, descriptor.right, test_size=FLAGS.val_portion)
+        train_test_split(descriptor.steering, descriptor.center,
+                         descriptor.left, descriptor.right, test_size=FLAGS.val_portion)
     train_paths = np.concatenate((train_paths_left, train_paths_center, train_paths_right))
     train_steering = np.concatenate((train_steering + FLAGS.shift, train_steering, train_steering - FLAGS.shift))
 else:
@@ -80,38 +82,8 @@ train_paths, train_steering = train_paths[binned_indices], train_steering[binned
 print("Training set size: {}, Validation set size: {}".format(len(train_paths), len(val_steering)))
 
 
-model = Sequential()
-model.add(Cropping2D(cropping=((70,20),(0,0)), input_shape=input_img_shape))
-model.add(Lambda(lambda x: (x/255.0)-0.5))
-model.add(Convolution2D(int(16*FLAGS.width), 3, 3, border_mode='same', activation="elu"))
-model.add(Convolution2D(int(16*FLAGS.width), 3, 3, border_mode='same', activation="elu"))
-model.add(Convolution2D(int(16*FLAGS.width), 3, 3, subsample=(2,2), border_mode='same', activation="elu"))
-model.add(BatchNormalization())
-model.add(Convolution2D(int(32*FLAGS.width), 3, 3, border_mode='same', activation="elu"))
-model.add(Convolution2D(int(32*FLAGS.width), 3, 3, border_mode='same', activation="elu"))
-model.add(Convolution2D(int(32*FLAGS.width), 3, 3, subsample=(2,2), border_mode='same', activation="elu"))
-model.add(BatchNormalization())
-model.add(Convolution2D(int(64*FLAGS.width), 3, 3, border_mode='same', activation="elu"))
-model.add(Convolution2D(int(64*FLAGS.width), 3, 3, border_mode='same', activation="elu"))
-model.add(Convolution2D(int(64*FLAGS.width), 3, 3, subsample=(2,2), border_mode='same', activation="elu"))
-model.add(BatchNormalization())
-model.add(Convolution2D(int(64*FLAGS.width), 3, 3, border_mode='same', activation="elu"))
-model.add(Convolution2D(int(64*FLAGS.width), 3, 3, border_mode='same', activation="elu"))
-model.add(Convolution2D(int(64*FLAGS.width), 3, 3, subsample=(2,2), border_mode='same', activation="elu"))
-model.add(BatchNormalization())
-model.add(Convolution2D(int(128*FLAGS.width), 3, 3, border_mode='same', activation="elu"))
-model.add(Convolution2D(int(128*FLAGS.width), 3, 3, border_mode='same', activation="elu"))
-model.add(Convolution2D(int(128*FLAGS.width), 3, 3, subsample=(2,2), border_mode='same', activation="elu"))
-model.add(BatchNormalization())
-model.add(Convolution2D(int(256*FLAGS.width), 3, 3, border_mode='same', activation="elu"))
-model.add(Convolution2D(int(256*FLAGS.width), 3, 3, border_mode='same', activation="elu"))
-model.add(Convolution2D(int(256*FLAGS.width), 3, 3, subsample=(2,2), border_mode='same', activation="elu"))
-model.add(Flatten())
-model.add(Dropout(0.25))
-model.add(Dense(200, activation='elu'))
-model.add(Dense(100, activation='elu'))
-model.add(Dense(10, activation='elu'))
-model.add(Dense(1))
+model = SimplifiedModel(FLAGS, input_img_shape)
+
 
 config = K.tf.ConfigProto(allow_soft_placement=True)
 config.gpu_options.allow_growth = True
