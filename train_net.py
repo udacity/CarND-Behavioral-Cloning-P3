@@ -36,7 +36,7 @@ tf.flags.DEFINE_float('val_portion', 0.15,
                       'Define the portion of the dataset used for validation')
 tf.flags.DEFINE_float('shift_value', 0.05,
                       'Define the shift value for cameras - Default: 0.05')
-tf.flags.DEFINE_float('withd', 1.0,
+tf.flags.DEFINE_float('width', 1.0,
                       'Define the width scaller for the net. Default: 1.0 (float)')
 tf.flags.DEFINE_bool('shift', True, "Camera shift augmentation is set for True. Set for False to turn off.")
 tf.flags.DEFINE_bool('flip', True, "Camera flip augmentation is set for True. Set for False to turn off.")
