@@ -7,10 +7,17 @@ create_paths_to_images = lambda x, data_path: np.array([os.path.join(data_path, 
 def ensure_valid_values(paths, measure):
     paths = np.array(paths)
     measure = np.array(measure)
-    for i in range(len(measure)):
-        if not(os.path.exists(paths[i])) or (type(measure[i])==float):
-            np.delete(paths,i), np.delete(measure,i)
-    return paths, measure
+    new_paths, new_measure = [],[]
+    for p, m in zip(paths, measure):
+        if os.path.exists(p) and (type(m)==float):
+            new_paths.append(p), new_measure.append(m)
+        else:
+            print("Incorrect path:", p, m)
+    new_paths = np.array(new_paths)
+    new_measure = np.array(new_measure)
+    assert len(new_paths)>0, "Provided incorrect paths. No paths or measure will be generated."
+
+    return new_paths, new_measure
 
 def continuous_to_bins(vector, n_bins=9):
     vector = np.array(vector)
