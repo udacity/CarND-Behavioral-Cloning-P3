@@ -4,15 +4,15 @@ from sklearn.utils import shuffle
 
 create_paths_to_images = lambda x, data_path: np.array([os.path.join(data_path, v) for v in x])
 
-def ensure_valid_values(paths, measure):
+def ensure_valid_values(paths, measure, dtype=np.float64):
     paths = np.array(paths)
     measure = np.array(measure)
     new_paths, new_measure = [],[]
     for p, m in zip(paths, measure):
-        if os.path.exists(p) and (type(m)==float):
+        if os.path.exists(p) and (type(m)==dtype):
             new_paths.append(p), new_measure.append(m)
         else:
-            print("Incorrect path:", p, m)
+            print("Incorrect path:", p, m, type(m).__name__)
     new_paths = np.array(new_paths)
     new_measure = np.array(new_measure)
     assert len(new_paths)>0, "Provided incorrect paths. No paths or measure will be generated."
