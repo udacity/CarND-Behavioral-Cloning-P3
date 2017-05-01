@@ -89,7 +89,7 @@ config = K.tf.ConfigProto(allow_soft_placement=True)
 config.gpu_options.allow_growth = True
 K.set_session(tf.Session(config=config))
 
-model.compile(loss='mse', optimizer=Adam(1e-4), metrics=['accuracy'])
+model.compile(loss='mse', optimizer=Adam(1e-3), metrics=['accuracy'])
 model.summary() #prints a summary representation of your model.
 model_config = model.get_config()
 #model = Sequential.from_config(model_config)
