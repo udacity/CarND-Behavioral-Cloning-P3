@@ -23,20 +23,20 @@ tf.flags.DEFINE_string('descriptor_name',
 tf.flags.DEFINE_string('model_name',
                        'LeNet_DropOut.h5',
                        'Provide the name of the data descriptor - Default: LeNet_DropOut.h5')
-tf.flags.DEFINE_integer('batch_size',512,
+tf.flags.DEFINE_integer('batch_size',256,
                         'Provide the batch size - Default: 512')
 tf.flags.DEFINE_integer('epochs',5,
                         'Specify the number of epochs for the training - Default: 5')
-tf.flags.DEFINE_integer('bins',7,
-                        'Specify the number of bins used to rebalance the data - Default: 7')
+tf.flags.DEFINE_integer('bins',5,
+                        'Specify the number of bins used to rebalance the data - Default: 5')
 tf.flags.DEFINE_integer('top_crop',50,
                         'Specify the number pixels to be cropped form the top - Default: 50')
 tf.flags.DEFINE_integer('bottom_crop',20,
                         'Specify the number pixels to be cropped on the bottom - Default: 20')
 tf.flags.DEFINE_float('val_portion', 0.15,
                       'Define the portion of the dataset used for validation')
-tf.flags.DEFINE_float('shift_value', 0.05,
-                      'Define the shift value for cameras - Default: 0.05')
+tf.flags.DEFINE_float('shift_value', 0.20,
+                      'Define the shift value for cameras - Default: 0.20')
 tf.flags.DEFINE_float('width', 1.0,
                       'Define the width scaller for the net. Default: 1.0 (float)')
 tf.flags.DEFINE_bool('shift', True, "Camera shift augmentation is set for True. Set for False to turn off.")

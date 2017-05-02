@@ -4,6 +4,8 @@ from sklearn.utils import shuffle
 
 create_paths_to_images = lambda x, data_path: np.array([os.path.join(data_path, v) for v in x])
 
+read_rgb_img = lambda path: cv2.cvtColor(cv2.imread(path), cv2.COLOR_BGR2RGB)
+
 def ensure_valid_values(paths, measure, dtype=np.float64):
     paths = np.array(paths)
     measure = np.array(measure)
@@ -90,7 +92,7 @@ def generate_data_with_augmentation_from(paths,
 
     def augmentation(p,m):
 
-        im, m = cv2.imread(p), m
+        im, m = read_rgb_img(p), m
 
         if random_flip:
             flip_choice = np.random.choice([horizontal_flip, no_flip])
