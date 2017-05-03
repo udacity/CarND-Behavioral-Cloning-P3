@@ -10,6 +10,7 @@ from keras.optimizers import Adam
 import keras.backend.tensorflow_backend as K
 
 from src.Models.SimplifiedModel import SimplifiedModel
+from src.Models.SimplifiedModel_Extra_Dropout import SimplifiedModelExtraDropout
 
 tf.flags.DEFINE_string('data_location',
                        'data',
@@ -20,11 +21,14 @@ tf.flags.DEFINE_string('logs_location',
 tf.flags.DEFINE_string('descriptor_name',
                        'driving_log.csv',
                        'Provide the name of the data descriptor - Default: driving_log.csv')
+tf.flags.DEFINE_string('model_type',
+                       'SimplifiedModelExtraDropout',
+                       'Provide the name of the net architecture to be used for training [SimplifiedModel,SimplifiedModelExtraDropout] - Default: SimplifiedModel')
 tf.flags.DEFINE_string('model_name',
                        'LeNet_DropOut.h5',
                        'Provide the name of the data descriptor - Default: LeNet_DropOut.h5')
 tf.flags.DEFINE_integer('batch_size',256,
-                        'Provide the batch size - Default: 512')
+                        'Provide the batch size - Default: 256')
 tf.flags.DEFINE_integer('epochs',5,
                         'Specify the number of epochs for the training - Default: 5')
 tf.flags.DEFINE_integer('bins',5,
@@ -82,7 +86,13 @@ train_paths, train_steering = train_paths[binned_indices], train_steering[binned
 print("Training set size: {}, Validation set size: {}".format(len(train_paths), len(val_steering)))
 
 
-model = SimplifiedModel(FLAGS, input_img_shape)
+assert FLAGS.model_type in ['SimplifiedModel', 'SimplifiedModelExtraDropout'], \
+    "Incorrect model name provided. Expected: ['SimplifiedModel', 'SimplifiedModelExtraDropout']. Provided {}".\
+        format(FLAGS.model_type)
+if FLAGS.model_type == 'SimplifiedModel':
+    model = SimplifiedModel(FLAGS, input_img_shape)
+if FLAGS.model_type == 'SimplifiedModelExtraDropout':
+    model = SimplifiedModelExtraDropout(FLAGS, input_img_shape)
 
 
 config = K.tf.ConfigProto(allow_soft_placement=True)
