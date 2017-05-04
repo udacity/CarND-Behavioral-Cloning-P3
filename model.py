@@ -33,8 +33,8 @@ tf.flags.DEFINE_integer('epochs',5,
                         'Specify the number of epochs for the training - Default: 5')
 tf.flags.DEFINE_integer('bins',5,
                         'Specify the number of bins used to rebalance the data - Default: 5')
-tf.flags.DEFINE_integer('top_crop',50,
-                        'Specify the number pixels to be cropped form the top - Default: 50')
+tf.flags.DEFINE_integer('top_crop',0,
+                        'Specify the number pixels to be cropped form the top - Default: 0')
 tf.flags.DEFINE_integer('bottom_crop',20,
                         'Specify the number pixels to be cropped on the bottom - Default: 20')
 tf.flags.DEFINE_float('val_portion', 0.15,
