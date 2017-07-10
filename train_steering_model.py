@@ -72,7 +72,7 @@ def load_images(image_paths, resize_scale=None):
 
         # resize the image
         if isinstance(resize_scale, (float, int)):
-            final_size = (int(resize_scale * img.shape[0]), int(resize_scale * img.shape[1]))
+            final_size = (int(resize_scale * img.shape[1]), int(resize_scale * img.shape[0]))
             img = cv2.resize(img, final_size)
         images.append(img)
 
@@ -85,7 +85,7 @@ def save_as_h5_data(data_map, save_to_path):
     gen = data_map_generator(data_map, chunk_size)
 
     image_paths_chunk, labels_chunk = next(gen)
-    images_chunk = np.asarray(load_images(image_paths_chunk, resize_scale=0.25))
+    images_chunk = np.asarray(load_images(image_paths_chunk, resize_scale=None))
     row_count = images_chunk.shape[0]
 
     with h5py.File(save_to_path, 'w') as f:
@@ -103,7 +103,7 @@ def save_as_h5_data(data_map, save_to_path):
         dset_labels[:] = labels_chunk
 
         for image_paths_chunk, labels_chunk in gen:
-            images_chunk = np.asarray(load_images(image_paths_chunk, resize_scale=0.25))
+            images_chunk = np.asarray(load_images(image_paths_chunk, resize_scale=None))
 
             # Resize the dataset to accommodate the next chunk of rows
             dset_images.resize(row_count + images_chunk.shape[0], axis=0)
@@ -162,6 +162,6 @@ steering_network = SteeringNeuralNetwork(image_shape, output_shape)
 steering_network.model.compile(optimizer="adam", loss="mse")
 steering_network.model.fit(x=train_images, y=train_labels,
                            validation_data=(valid_images, valid_labels),
-                           batch_size=64, epochs=500, shuffle="batch")
+                           batch_size=64, epochs=2000, shuffle="batch")
 
 steering_network.model.save("steering_model.h5")
