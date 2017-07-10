@@ -4,14 +4,13 @@ import cv2
 import random
 import numpy as np
 import h5py
-from keras.models import Sequential
-from keras.layers import Flatten, Dense
+from steering_neural_network import SteeringNeuralNetwork
 
 DATA_DIR = "data"
 DATA_H5_PATHS = {
-    "TRAIN_PATH" : os.path.join(DATA_DIR, "train.h5"),
-    "VALID_PATH" : os.path.join(DATA_DIR, "valid.h5"),
-    "TEST_PATH" : os.path.join(DATA_DIR, "test.h5")
+    "TRAIN_PATH": os.path.join(DATA_DIR, "train.h5"),
+    "VALID_PATH": os.path.join(DATA_DIR, "valid.h5"),
+    "TEST_PATH": os.path.join(DATA_DIR, "test.h5")
 }
 
 
@@ -156,13 +155,13 @@ test_labels = test_data["labels"]
 
 # Build the neural network
 image_shape = train_images[0].shape
-model = Sequential()
-model.add(Flatten(input_shape=image_shape))
-model.add(Dense(1))
+output_shape = 1
 
-model.compile(optimizer="adam", loss="mse")
-model.fit(x=train_images, y=train_labels,
-          validation_data=(valid_images, valid_labels),
-          batch_size=64, epochs=500, shuffle="batch")
+steering_network = SteeringNeuralNetwork(image_shape, output_shape)
 
-model.save("steering_model.h5")
+steering_network.model.compile(optimizer="adam", loss="mse")
+steering_network.model.fit(x=train_images, y=train_labels,
+                           validation_data=(valid_images, valid_labels),
+                           batch_size=64, epochs=500, shuffle="batch")
+
+steering_network.model.save("steering_model.h5")
