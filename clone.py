@@ -12,6 +12,27 @@ with open('./data/driving_log.csv') as csvfile:
     for line in reader:
         lines.append(line)
 
+with open('./data/driving_log.csv') as f:
+    reader = csv.reader(f)
+    for line in reader:
+        steering_center = float(line[3])
+
+        # create adjusted steering measurements for the side camera images
+        correction = 0.2 # this is a parameter to tune
+        steering_left = steering_center + correction
+        steering_right = steering_center - correction
+
+        # read in images from center, left and right cameras
+        directory = "..." # fill in the path to your training IMG directory
+        img_center = process_image(np.asarray(Image.open(path + line[0])))
+        img_left = process_image(np.asarray(Image.open(path + line[1])))
+        img_right = process_image(np.asarray(Image.open(path + line[2])))
+
+        # add images and angles to data set
+        car_images.extend(img_center, img_left, img_right)
+        steering_angles.extend(steering_center, steering_left, steering_right)
+
+
 images = []
 measurements = []
 lines = lines[1:]
@@ -31,6 +52,7 @@ for image, measurement in zip(images, measurements):
     augmented_measurements.append(measurement)
     augmented_images.append(cv2.flip(image, 1))
     augmented_measurements.append(measurement*-1.0)
+
 
 X_train = np.array(augmented_images)
 y_train = np.array(augmented_measurements)
