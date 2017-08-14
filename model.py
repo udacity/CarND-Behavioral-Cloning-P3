@@ -4,6 +4,7 @@
 import matplotlib.pyplot as plt
 from keras.models import Sequential, Model
 from keras.layers import Flatten, Dense, Lambda, Conv2D, Dropout
+from keras.optimizers import Adam
 from sklearn.model_selection import train_test_split
 import utils
 
@@ -30,11 +31,11 @@ def build_model(keep_prob):
     return model
 
 
-def compile_model(model, loss='mse', optimizer='adam'):
+def compile_model(model, learning_rate=0.001):
     """
     Compile the model
     """
-    model.compile(loss, optimizer)
+    model.compile(loss='mean_squared_error', optimizer=Adam(lr=learning_rate))
 
 
 def train_model(model, train_gen, n_train, validation_gen, n_validation, n_epochs):
@@ -42,10 +43,10 @@ def train_model(model, train_gen, n_train, validation_gen, n_validation, n_epoch
     Train the model
     """
     history = model.fit_generator(generator=train_gen,
-                                  steps_per_epoch=n_train,
+                                  samples_per_epoch=n_train,
                                   validation_data=validation_gen,
-                                  validation_steps=n_validation,
-                                  epochs=n_epochs,
+                                  nb_val_samples=n_validation,
+                                  nb_epoch=n_epochs,
                                   verbose=1)
     model.save('model.h5')
     return history
@@ -70,7 +71,7 @@ def draw_metrics(history_object):
 
 
 def main():
-    csv_file = 'data/xxx.csv'
+    csv_file = 'data/driving_log.csv'
     img_dir = 'data/IMG/'
     epochs = 5
     keep_prob = 0.5
@@ -78,7 +79,7 @@ def main():
     # split validation set from training set
     train_samples, validation_samples = train_test_split(utils.read_csv(csv_file), test_size=0.33)
 
-    # create train and validation generator    
+    # create train and validation generator
     train_generator = utils.generator(train_samples, img_dir)
     validation_generator = utils.generator(validation_samples, img_dir)
 
@@ -89,20 +90,20 @@ def main():
     compile_model(model)
 
     # train the model
-    history = train_model(model, 
-                          train_generator, 
-                          len(train_samples), 
-                          validation_generator, 
-                          len(validation_samples), 
+    history = train_model(model,
+                          train_generator,
+                          len(train_samples),
+                          validation_generator,
+                          len(validation_samples),
                           epochs)
-        
+
     # plot loss
     draw_metrics(history)
 
     # print history
     print(get_history_keys(history))
-    
-     
+
+
 
 if __name__ == "__main__":
     main()

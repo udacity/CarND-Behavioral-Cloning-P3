@@ -50,7 +50,7 @@ def preprocess(images):
     Combine all preprocess functions into one
     """
     new_images = []
-    for image in images: 
+    for image in images:
         image = crop(image)
         image = resize(image)
         image = rgb2yuv(image)
@@ -104,22 +104,22 @@ def flip_images(images, angles):
 
 
 def augment(images, angles):
-    """ 
+    """
     Augment images through flip, shift and brightness tuning
     """
     # 1. add flip images in order to recognize both clockwise and counter-clockwise roads
-    flip_images, flip_angles = flip_images(images, angles)
-    images.extend(flip_images)
+    flip_imgs, flip_angles = flip_images(images, angles)
+    images.extend(flip_imgs)
     angles.extend(flip_angles)
 
     # 2. randomly adjust shift
     images, angles = random_translation(images, angles)
 
     # 3. randomly adjust brightness
-    images = random_brightness(images) 
+    images = random_brightness(images)
 
     return images, angles
-    
+
 
 def load_images(img_dir, sample):
     return [cv2.imread(os.path.join(img_dir, sample[i].split('/')[-1])) for i in range(3)]
