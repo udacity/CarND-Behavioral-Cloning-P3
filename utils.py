@@ -125,7 +125,7 @@ def load_images(img_dir, sample):
     return [cv2.imread(os.path.join(img_dir, sample[i].split('/')[-1])) for i in range(3)]
 
 
-def generator(samples, img_dir, batch_size=32, is_training=True):
+def generator(samples, img_dir, batch_size=40, is_training=True):
     num_samples = len(samples)
     while 1: # Loop forever so the generator never terminates
         random.shuffle(samples)

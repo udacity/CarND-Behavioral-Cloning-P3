@@ -92,7 +92,8 @@ def main():
     # train the model
     history = train_model(model,
                           train_generator,
-                          len(train_samples),
+                          # len(train_samples),
+                          20000,
                           validation_generator,
                           len(validation_samples),
                           epochs)
