@@ -11,7 +11,6 @@ from sklearn.model_selection import train_test_split
 
 
 CORRECTION = 0.2
-IMG_DIR = 'data/IMG/'
 IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS = 66, 200, 3
 INPUT_SHAPE = (IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS)
 
@@ -151,10 +150,3 @@ def generator(samples, img_dir, batch_size=32, is_training=True):
             y_data = np.array(batch_angles)
             yield sklearn.utils.shuffle(X_data, y_data)
 
-
-train_samples, validation_samples = train_test_split(samples, test_size=0.33)
-
-
-# compile and train the model using the generator function
-train_generator = generator(train_samples, IMG_DIR)
-validation_generator = generator(validation_samples, IMG_DIR)

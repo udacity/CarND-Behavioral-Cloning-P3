@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-from keras.models import Sequential, Model
-from keras.layers import Flatten, Dense, Lambda, Cropping2D
-from keras.layers.convolutional import Convolution2D
-from keras.layers.pooling import MaxPooling2D
 import matplotlib.pyplot as plt
+from keras.models import Sequential, Model
+from keras.layers import Flatten, Dense, Lambda, Conv2D, Dropout
 from sklearn.model_selection import train_test_split
+import utils
 
 
 def build_model(keep_prob):
@@ -14,7 +13,7 @@ def build_model(keep_prob):
     Build NVIDIA model
     """
     model = Sequential()
-    model.add(Lambda(lambda x: x/127.5-1.0, input_shape=INPUT_SHAPE))
+    model.add(Lambda(lambda x: x/127.5-1.0, input_shape=utils.INPUT_SHAPE))
     model.add(Conv2D(24, 5, 5, activation='relu', subsample=(2, 2)))
     model.add(Conv2D(36, 5, 5, activation='relu', subsample=(2, 2)))
     model.add(Conv2D(48, 5, 5, activation='relu', subsample=(2, 2)))
@@ -32,38 +31,79 @@ def build_model(keep_prob):
 
 
 def compile_model(model, loss='mse', optimizer='adam'):
+    """
+    Compile the model
+    """
     model.compile(loss, optimizer)
 
 
-def train_model(model, X_data, y_data, epochs):
-    model.fit(X_data, y_data, validation_split=0.2, shuffle=True, nb_epoch=epochs)
+def train_model(model, train_gen, n_train, validation_gen, n_validation, n_epochs):
+    """
+    Train the model
+    """
+    history = model.fit_generator(generator=train_gen,
+                                  steps_per_epoch=n_train,
+                                  validation_data=validation_gen,
+                                  validation_steps=n_validation,
+                                  epochs=n_epochs,
+                                  verbose=1)
     model.save('model.h5')
+    return history
 
 
-history_object = model.fit_generator(train_generator,
-                                     samples_per_epoch=len(train_samples),
-                                     validation_data=validation_generator,
-                                     nb_val_samples=len(validation_samples),
-                                     nb_epoch=5,
-                                     verbose=1)
+def get_history_keys(history_object):
+    # print the keys contained in the history object
+    return history_object.history.keys()
 
 
-### print the keys contained in the history object
-print(history_object.history.keys())
+def draw_metrics(history_object):
+    """
+    plot the training and validation loss for each epoch
+    """
+    plt.plot(history_object.history['loss'])
+    plt.plot(history_object.history['val_loss'])
+    plt.title('model mean squared error loss')
+    plt.ylabel('mean squared error loss')
+    plt.xlabel('epoch')
+    plt.legend(['training set', 'validation set'], loc='upper right')
+    plt.show()
 
 
-### plot the training and validation loss for each epoch
-plt.plot(history_object.history['loss'])
-plt.plot(history_object.history['val_loss'])
-plt.title('model mean squared error loss')
-plt.ylabel('mean squared error loss')
-plt.xlabel('epoch')
-plt.legend(['training set', 'validation set'], loc='upper right')
-plt.show()
+def main():
+    csv_file = 'data/xxx.csv'
+    img_dir = 'data/IMG/'
+    epochs = 5
+    keep_prob = 0.5
 
-# 1. build model
+    # split validation set from training set
+    train_samples, validation_samples = train_test_split(utils.read_csv(csv_file), test_size=0.33)
 
-# 2. fit model on training data
+    # create train and validation generator    
+    train_generator = utils.generator(train_samples, img_dir)
+    validation_generator = utils.generator(validation_samples, img_dir)
 
-# 3. Evaluate
-score = model.evaluate(X_test, Y_test, verbose=0)
+    # build model
+    model = build_model(keep_prob)
+
+    # compile the model
+    compile_model(model)
+
+    # train the model
+    history = train_model(model, 
+                          train_generator, 
+                          len(train_samples), 
+                          validation_generator, 
+                          len(validation_samples), 
+                          epochs)
+        
+    # plot loss
+    draw_metrics(history)
+
+    # print history
+    print(get_history_keys(history))
+    
+     
+
+if __name__ == "__main__":
+    main()
+
