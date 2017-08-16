@@ -77,8 +77,10 @@ def main():
     keep_prob = 0.5
 
     # split validation set from training set
-    train_samples, validation_samples = train_test_split(utils.read_csv(csv_file), test_size=0.33)
-
+    samples = utils.read_csv(csv_file)
+    samples.pop(0)
+    train_samples, validation_samples = train_test_split(samples, test_size=0.2)
+    
     # create train and validation generator
     train_generator = utils.generator(train_samples, img_dir)
     validation_generator = utils.generator(validation_samples, img_dir)
@@ -105,7 +107,5 @@ def main():
     print(get_history_keys(history))
 
 
-
 if __name__ == "__main__":
     main()
-
