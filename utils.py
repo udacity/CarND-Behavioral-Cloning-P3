@@ -130,7 +130,7 @@ def load_images(img_dir, img_names):
     return [cv2.imread(os.path.join(img_dir, img_names[i].split('/')[-1])) for i in range(3)]
 
 
-def batch_generator1(img_dir, samples, batch_size=32, is_training=True):
+def batch_generator1(img_dir, samples, batch_size=40, is_training=True):
     num_samples = len(samples)
     batch_images = np.empty([batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS])
     batch_angles = np.empty(batch_size)

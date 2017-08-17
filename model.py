@@ -48,6 +48,7 @@ def train_model(model, train_gen, n_train, validation_gen, n_validation, n_epoch
                                   nb_val_samples=n_validation,
                                   nb_epoch=n_epochs,
                                   verbose=1)
+    print("saving model")
     model.save('model.h5')
     return history
 
@@ -73,7 +74,7 @@ def draw_metrics(history_object):
 def main():
     csv_file = 'data/driving_log.csv'
     img_dir = 'data/IMG/'
-    epochs = 2
+    epochs = 1
     keep_prob = 0.5
 
     # split validation set from training set
@@ -93,8 +94,8 @@ def main():
     # train the model
     history = train_model(model,
                           train_generator,
-                          len(train_samples),
-                          # 20000,
+                        #   len(train_samples),
+                          8000,
                           validation_generator,
                           len(validation_samples),
                           epochs)
