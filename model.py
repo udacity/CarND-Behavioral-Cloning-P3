@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from keras.models import Sequential
 from keras.layers import Flatten, Dense, Lambda, Conv2D, Dropout
 from keras.optimizers import Adam
+from keras.callbacks import ModelCheckpoint
 from sklearn.model_selection import train_test_split
 import utils
 
@@ -42,11 +43,18 @@ def train_model(model, train_gen, n_train, validation_gen, n_validation, n_epoch
     """
     Train the model
     """
+    checkpoint = ModelCheckpoint('model-{epoch:03d}.h5',
+                                 monitor='val_loss',
+                                 verbose=0,
+                                 save_best_only=True,
+                                 mode='auto')
+
     history = model.fit_generator(generator=train_gen,
                                   samples_per_epoch=n_train,
                                   validation_data=validation_gen,
                                   nb_val_samples=n_validation,
                                   nb_epoch=n_epochs,
+                                  callbacks=[checkpoint],
                                   verbose=1)
     print("saving model")
     model.save('model.h5')
