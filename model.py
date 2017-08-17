@@ -2,7 +2,7 @@
 # encoding: utf-8
 
 import matplotlib.pyplot as plt
-from keras.models import Sequential, Model
+from keras.models import Sequential
 from keras.layers import Flatten, Dense, Lambda, Conv2D, Dropout
 from keras.optimizers import Adam
 from sklearn.model_selection import train_test_split
@@ -73,17 +73,16 @@ def draw_metrics(history_object):
 def main():
     csv_file = 'data/driving_log.csv'
     img_dir = 'data/IMG/'
-    epochs = 5
+    epochs = 2
     keep_prob = 0.5
 
     # split validation set from training set
-    samples = utils.read_csv(csv_file)
-    samples.pop(0)
+    samples = utils.load_csv(csv_file)
     train_samples, validation_samples = train_test_split(samples, test_size=0.2)
-    
+
     # create train and validation generator
-    train_generator = utils.generator(train_samples, img_dir)
-    validation_generator = utils.generator(validation_samples, img_dir)
+    train_generator = utils.batch_generator1(img_dir, train_samples)
+    validation_generator = utils.batch_generator1(img_dir, validation_samples)
 
     # build model
     model = build_model(keep_prob)
@@ -94,8 +93,8 @@ def main():
     # train the model
     history = train_model(model,
                           train_generator,
-                          # len(train_samples),
-                          20000,
+                          len(train_samples),
+                          # 20000,
                           validation_generator,
                           len(validation_samples),
                           epochs)

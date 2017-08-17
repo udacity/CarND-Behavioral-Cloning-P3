@@ -1,14 +1,12 @@
-p#!/usr/bin/env python
+#!/usr/bin/env python
 # encoding: utf-8
 
 import os
-import csv
 import cv2
 import random
 import numpy as np
 import pandas as pd
-import sklearn
-from sklearn.model_selection import train_test_split
+#import sklearn
 
 
 CORRECTION = 0.2
@@ -16,18 +14,9 @@ IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS = 66, 200, 3
 INPUT_SHAPE = (IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS)
 
 
-def read_csv(file):
-    samples = []
-    with open(file) as csvfile:
-        reader = csv.reader(csvfile)
-        for line in reader:
-            samples.append(line)
-    return samples
-
-
 def load_csv(file):
     """
-    Load training data 
+    Load training data
     """
     data_df = pd.read_csv(file)
     samples = data_df[['center', 'left', 'right', 'steering']].values
@@ -126,7 +115,7 @@ def augment(center_image, left_image, right_image, angle):
     image, angle = pick_image(center_image, left_image, right_image, angle)
 
     # 2. add flip image in order to recognize both clockwise and counter-clockwise roads
-    image, angle = random_flip(image, angle) 
+    image, angle = random_flip(image, angle)
 
     # 3. randomly adjust shift
     images, angles = random_translation(image, angle)
@@ -141,96 +130,48 @@ def load_images(img_dir, img_names):
     return [cv2.imread(os.path.join(img_dir, img_names[i].split('/')[-1])) for i in range(3)]
 
 
-def generator(samples, img_dir, batch_size=40, is_training=True):
+def batch_generator1(img_dir, samples, batch_size=32, is_training=True):
     num_samples = len(samples)
-    while True # Loop forever so the generator never terminates
-        random.shuffle(samples)
+    batch_images = np.empty([batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS])
+    batch_angles = np.empty(batch_size)
+
+    while True:
+        np.random.shuffle(samples)
         for offset in range(0, num_samples, batch_size):
             batch_samples = samples[offset:offset+batch_size]
 
-            batch_images = []
-            batch_angles = []
-            for batch_sample in batch_samples:
+            for i, batch_sample in enumerate(batch_samples):
+                image_names = batch_sample[:3]
                 angle = float(batch_sample[3])
-                # angles list contains center_angle, left_angle and right_angle
-                angles = [angle, angle-CORRECTION, angle+CORRECTION]
-                # images list contains center_image, left_image and right_image
-                images = load_images(img_dir, batch_sample)
+                center_image, left_image, right_image = load_images(img_dir, image_names)
                 if is_training and np.random.rand() < 0.6:
-                    images, angles = augment(images, angles)
+                    image, angle = augment(center_image, left_image, right_image, angle)
 
-                images = preprocess(images)
-                batch_images.extend(images)
-                batch_angles.extend(angles)
-            X_data = np.array(batch_images)
-            y_data = np.array(batch_angles)
-            yield sklearn.utils.shuffle(X_data, y_data)
+                image = preprocess(center_image)
+                batch_images[i] = image
+                batch_angles[i] = angle
 
-
-def batch_generator(X, y, batch_size, shuffle):
-    #chenglong code for fiting from generator (https://www.kaggle.com/c/talkingdata-mobile-user-demographics/forums/t/22567/neural-network-for-sparse-matrices)
-    number_of_batches = np.ceil(X.shape[0]/batch_size)
-    counter = 0
-    sample_index = np.arange(X.shape[0])
-    if shuffle:
-        np.random.shuffle(sample_index)
-    while True:
-        batch_index = sample_index[batch_size*counter:batch_size*(counter+1)]
-        X_batch = X[batch_index,:].toarray()
-        y_batch = y[batch_index]
-        counter += 1
-        yield X_batch, y_batch
-        if (counter == number_of_batches):
-            if shuffle:
-                np.random.shuffle(sample_index)
-            counter = 0
+            # yield sklearn.utils.shuffle(batch_images, batch_angles)
+            yield batch_images, batch_angles
 
 
-def batch_generator1(img_dir, X_data, y_data, batch_size=32, is_training=True):
-
-    num_of_batches = np.ceil(X_data.shape[0]/batch_size)
-    cnt = 0
-    indices = np.arange(X_data.shape[0])
-    np.random.shuffle(indices)
-
-    while True # Loop forever so the generator never terminates
-
-        i = 0
-        for idx in np.random.permutation(X_data.shape[0]):
-            center_name, left_name, right_name = X_data[idx]
-            angle = y_data[idx]
-            center_image, left_image, right_image = load_images(img_dir, image_names)
-            if is_training and np.random.rand() < 0.6:
-                image, angle = augment(center_image, left_image, right_image, angle)
-            
-            image = preprocess(image)
-            images[i] = image
-            angles[i] = angle   
-            i += 1
-            if i == batch_size:
-                break
-        yield images, angles
-
-
-def batch_generator2(img_dir, X_data, y_data, batch_size=32, is_training=True):
-
+def batch_generator2(img_dir, X_data, y_data, batch_size=40, is_training=True):
     images = np.empty([batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS])
     angles = np.empty(batch_size)
 
-    while True # Loop forever so the generator never terminates
+    while True:
         i = 0
         for idx in np.random.permutation(X_data.shape[0]):
-            center_name, left_name, right_name = X_data[idx]
+            image_names = X_data[idx]
             angle = y_data[idx]
             center_image, left_image, right_image = load_images(img_dir, image_names)
             if is_training and np.random.rand() < 0.6:
                 image, angle = augment(center_image, left_image, right_image, angle)
-            
-            image = preprocess(image)
+
+            image = preprocess(center_image)
             images[i] = image
-            angles[i] = angle   
+            angles[i] = angle
             i += 1
             if i >= batch_size:
                 break
         yield images, angles
-        
