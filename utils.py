@@ -19,8 +19,9 @@ def load_csv(file):
     Load training data
     """
     data_df = pd.read_csv(file)
-    samples = data_df[['center', 'left', 'right', 'steering']].values
-    return samples
+    X = data_df[['center', 'left', 'right']].values
+    y = data_df['steering'].values
+    return X, y
 
 
 def crop(image):
@@ -159,6 +160,8 @@ def batch_generator2(img_dir, X_data, y_data, batch_size=40, is_training=True):
     images = np.empty([batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS])
     angles = np.empty(batch_size)
 
+    cnt = 0
+    print('enterrrrrrrrrrrrrr')
     while True:
         i = 0
         for idx in np.random.permutation(X_data.shape[0]):
@@ -174,4 +177,7 @@ def batch_generator2(img_dir, X_data, y_data, batch_size=40, is_training=True):
             i += 1
             if i >= batch_size:
                 break
+
+        print("1111111111: ", cnt, i)
+        cnt += 1
         yield images, angles

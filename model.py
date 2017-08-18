@@ -49,14 +49,14 @@ def train_model(model, train_gen, n_train, validation_gen, n_validation, n_epoch
                                  save_best_only=True,
                                  mode='auto')
 
-    history = model.fit_generator(generator=train_gen,
+    history = model.fit_generator2(generator=train_gen,
                                   samples_per_epoch=n_train,
-                                  validation_data=validation_gen,
-                                  nb_val_samples=n_validation,
                                   nb_epoch=n_epochs,
+                                  max_q_size=1,
+                                  validation_datasteering_angle=validation_gen,
+                                  nb_val_samples=n_validation,
                                   callbacks=[checkpoint],
                                   verbose=1)
-    print("saving model")
     model.save('model.h5')
     return history
 
@@ -82,16 +82,19 @@ def draw_metrics(history_object):
 def main():
     csv_file = 'data/driving_log.csv'
     img_dir = 'data/IMG/'
-    epochs = 1
+    epochs = 5
     keep_prob = 0.5
 
     # split validation set from training set
-    samples = utils.load_csv(csv_file)
-    train_samples, validation_samples = train_test_split(samples, test_size=0.2)
+    X, y = utils.load_csv(csv_file)
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.2)
+
+    print("-------------: ", len(X_train), len(y_train))
+    print("-------------: ", len(X_valid), len(y_valid))
 
     # create train and validation generator
-    train_generator = utils.batch_generator1(img_dir, train_samples)
-    validation_generator = utils.batch_generator1(img_dir, validation_samples)
+    train_generator = utils.batch_generator2(img_dir, X_train, y_train)
+    validation_generator = utils.batch_generator2(img_dir, X_valid, y_valid)
 
     # build model
     model = build_model(keep_prob)
@@ -105,14 +108,10 @@ def main():
                         #   len(train_samples),
                           8000,
                           validation_generator,
-                          len(validation_samples),
+                          len(X_valid),
                           epochs)
 
-    # plot loss
-    draw_metrics(history)
-
-    # print history
-    print(get_history_keys(history))
+    print("2222222222")
 
 
 if __name__ == "__main__":
