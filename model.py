@@ -49,11 +49,11 @@ def train_model(model, train_gen, n_train, validation_gen, n_validation, n_epoch
                                  save_best_only=True,
                                  mode='auto')
 
-    history = model.fit_generator2(generator=train_gen,
+    history = model.fit_generator(generator=train_gen,
                                   samples_per_epoch=n_train,
                                   nb_epoch=n_epochs,
                                   max_q_size=1,
-                                  validation_datasteering_angle=validation_gen,
+                                  validation_data=validation_gen,
                                   nb_val_samples=n_validation,
                                   callbacks=[checkpoint],
                                   verbose=1)
@@ -82,7 +82,7 @@ def draw_metrics(history_object):
 def main():
     csv_file = 'data/driving_log.csv'
     img_dir = 'data/IMG/'
-    epochs = 5
+    epochs = 10
     keep_prob = 0.5
 
     # split validation set from training set
@@ -106,12 +106,11 @@ def main():
     history = train_model(model,
                           train_generator,
                         #   len(train_samples),
-                          8000,
+                          20000,
                           validation_generator,
                           len(X_valid),
                           epochs)
 
-    print("2222222222")
 
 
 if __name__ == "__main__":

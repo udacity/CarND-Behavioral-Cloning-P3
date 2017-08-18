@@ -160,8 +160,8 @@ def batch_generator2(img_dir, X_data, y_data, batch_size=40, is_training=True):
     images = np.empty([batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS])
     angles = np.empty(batch_size)
 
-    cnt = 0
-    print('enterrrrrrrrrrrrrr')
+    # cnt = 0
+    # print('enterrrrrrrrrrrrrr')
     while True:
         i = 0
         for idx in np.random.permutation(X_data.shape[0]):
@@ -178,6 +178,6 @@ def batch_generator2(img_dir, X_data, y_data, batch_size=40, is_training=True):
             if i >= batch_size:
                 break
 
-        print("1111111111: ", cnt, i)
-        cnt += 1
+        # print("1111111111: ", cnt, i)
+        # cnt += 1
         yield images, angles
