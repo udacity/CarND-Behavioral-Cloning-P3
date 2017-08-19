@@ -3,10 +3,8 @@
 
 import os
 import cv2
-import random
 import numpy as np
 import pandas as pd
-#import sklearn
 
 
 CORRECTION = 0.2
@@ -28,7 +26,7 @@ def crop(image):
     """
     Crop the image (removing the sky at the top and the car front at the bottom)
     """
-    return image[75:-25, :, :] # remove the sky and the car front
+    return image[75:-25, :, :]
 
 
 def resize(image):
@@ -38,11 +36,11 @@ def resize(image):
     return cv2.resize(image, (IMAGE_WIDTH, IMAGE_HEIGHT), cv2.INTER_AREA)
 
 
-def rgb2yuv(image):
+def bgr2yuv(image):
     """
-    Convert the image from RGB to YUV (This is what the NVIDIA model does)
+    Convert the image from RGB to YUV
     """
-    return cv2.cvtColor(image, cv2.COLOR_RGB2YUV)
+    return cv2.cvtColor(image, cv2.COLOR_BGR2YUV)
 
 
 def preprocess(image):
@@ -51,7 +49,7 @@ def preprocess(image):
     """
     image = crop(image)
     image = resize(image)
-    image = rgb2yuv(image)
+    image = bgr2yuv(image)
     return image
 
 
@@ -98,7 +96,7 @@ def random_translation(image, angle, range_x=100, range_y=10):
     """
     trans_x = range_x * (np.random.rand() - 0.5)
     trans_y = range_y * (np.random.rand() - 0.5)
-    angle = angle+trans_x * 0.002
+    angle += trans_x * 0.002
     trans_m = np.float32([[1, 0, trans_x], [0, 1, trans_y]])
     height, width = image.shape[:2]
     image = cv2.warpAffine(image, trans_m, (width, height))
@@ -110,8 +108,6 @@ def augment(center_image, left_image, right_image, angle):
     """
     Augment images through flip, shift and brightness tuning
     """
-    angles = [angle, angle-CORRECTION, angle+CORRECTION]
-
     # 1. randomly pick up a image
     image, angle = pick_image(center_image, left_image, right_image, angle)
 
@@ -119,7 +115,7 @@ def augment(center_image, left_image, right_image, angle):
     image, angle = random_flip(image, angle)
 
     # 3. randomly adjust shift
-    images, angles = random_translation(image, angle)
+    image, angle = random_translation(image, angle)
 
     # 4. randomly adjust brightness
     image = random_brightness(image)
@@ -160,8 +156,6 @@ def batch_generator2(img_dir, X_data, y_data, batch_size=40, is_training=True):
     images = np.empty([batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS])
     angles = np.empty(batch_size)
 
-    # cnt = 0
-    # print('enterrrrrrrrrrrrrr')
     while True:
         i = 0
         for idx in np.random.permutation(X_data.shape[0]):
@@ -178,6 +172,4 @@ def batch_generator2(img_dir, X_data, y_data, batch_size=40, is_training=True):
             if i >= batch_size:
                 break
 
-        # print("1111111111: ", cnt, i)
-        # cnt += 1
         yield images, angles

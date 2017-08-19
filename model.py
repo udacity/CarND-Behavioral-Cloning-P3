@@ -89,8 +89,6 @@ def main():
     X, y = utils.load_csv(csv_file)
     X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.2)
 
-    print("-------------: ", len(X_train), len(y_train))
-    print("-------------: ", len(X_valid), len(y_valid))
 
     # create train and validation generator
     train_generator = utils.batch_generator2(img_dir, X_train, y_train)
@@ -103,13 +101,13 @@ def main():
     compile_model(model)
 
     # train the model
-    history = train_model(model,
-                          train_generator,
-                        #   len(train_samples),
-                          20000,
-                          validation_generator,
-                          len(X_valid),
-                          epochs)
+    train_model(model,
+                train_generator,
+            #   len(train_samples),
+                20000,
+                validation_generator,
+                len(X_valid),
+                epochs)
 
 
 
