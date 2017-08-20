@@ -3,6 +3,7 @@
 
 import os
 import cv2
+import sklearn
 import numpy as np
 import pandas as pd
 import matplotlib.image as mpimg
@@ -102,13 +103,15 @@ def random_translation(image, angle, range_x=100, range_y=10):
     return image, angle
 
 
-#def augment(center_image, left_image, right_image, angle):
 def augment(images, angles):
     """
     Augment images through flip, shift and brightness tuning
     """
     # 1. randomly pick up a image
     image, angle = pick_image(images, angles)
+
+    # 2. randomly flip the image
+    image, angle = random_flip(image, angle)
 
     # 2. randomly adjust shift
     image, angle = random_translation(image, angle)
@@ -129,34 +132,9 @@ def flip_images(images, angles):
     return [cv2.flip(i, 1) for i in images], [a*(-1) for a in angles]
 
 
-def batch_generator1(img_dir, samples, batch_size=40, is_training=True):
-    num_samples = len(samples)
+def batch_generator(img_dir, X_data, y_data, batch_size=40, is_training=True):
     batch_images = np.empty([batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS])
     batch_angles = np.empty(batch_size)
-
-    while True:
-        np.random.shuffle(samples)
-        for offset in range(0, num_samples, batch_size):
-            batch_samples = samples[offset:offset+batch_size]
-
-            for i, batch_sample in enumerate(batch_samples):
-                image_names = batch_sample[:3]
-                angle = float(batch_sample[3])
-                center_image, left_image, right_image = load_images(img_dir, image_names)
-                if is_training and np.random.rand() < 0.6:
-                    image, angle = augment(center_image, left_image, right_image, angle)
-
-                image = preprocess(center_image)
-                batch_images[i] = image
-                batch_angles[i] = angle
-
-            # yield sklearn.utils.shuffle(batch_images, batch_angles)
-            yield batch_images, batch_angles
-
-
-def batch_generator2(img_dir, X_data, y_data, batch_size=40, is_training=True):
-    batch_images = np.empty([batch_size*2, IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS])
-    batch_angles = np.empty(batch_size*2)
 
     while True:
         i = 0
@@ -164,24 +142,16 @@ def batch_generator2(img_dir, X_data, y_data, batch_size=40, is_training=True):
             image_names = X_data[idx]
             angle = y_data[idx]
             images, angles = load_images(img_dir, image_names, angle)
-            images_flip, angles_flip = flip_images(images, angles)
-            if is_training and np.random.rand() < 0.6:
+            if is_training and np.random.rand() < 0.5:
                 image, angle = augment(images, angles)
-                image_flip, angle_flip = augment(images_flip, angles_flip)
-
-                image, angle = preprocess(image), angle
-                image_flip, angle_flip = preprocess(image_flip), angle_flip
+                image = preprocess(image)
             else:
-                image, angle = preprocess(images[0]), angles[0]
-                image_flip, angle_flip = preprocess(images_flip[0]), angles_flip[0]
+                image = preprocess(images[0])
 
             batch_images[i] = image
             batch_angles[i] = angle
             i += 1
-            batch_images[i] = image_flip
-            batch_angles[i] = angle_flip
-            i += 1
-            if i >= batch_size*2:
+            if i >= batch_size:
                 break
 
         yield batch_images, batch_angles

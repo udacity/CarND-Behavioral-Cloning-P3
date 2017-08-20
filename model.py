@@ -9,6 +9,7 @@ from keras.callbacks import ModelCheckpoint
 from sklearn.model_selection import train_test_split
 import utils
 
+BATCH_SIZE_MULTIPLIER = 250
 
 def build_model(keep_prob):
     """
@@ -90,8 +91,8 @@ def main():
     X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.2)
 
     # create train and validation generator
-    train_generator = utils.batch_generator2(img_dir, X_train, y_train)
-    validation_generator = utils.batch_generator2(img_dir, X_valid, y_valid)
+    train_generator = utils.batch_generator(img_dir, X_train, y_train)
+    validation_generator = utils.batch_generator(img_dir, X_valid, y_valid, is_training=False)
 
     # build model
     model = build_model(keep_prob)
@@ -102,8 +103,7 @@ def main():
     # train the model
     train_model(model,
                 train_generator,
-            #   len(train_samples),
-                20000,
+                10000,
                 validation_generator,
                 len(X_valid),
                 epochs)
