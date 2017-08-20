@@ -54,13 +54,10 @@ def preprocess(image):
     return image
 
 
-def pick_image(center_image, left_image, right_image, angle):
+def pick_image(images, angles):
     """
     Randomly choose an image from the center, left or right
     """
-    images = (center_image, left_image, right_image)
-    angles = (angle, angle+CORRECTION, angle-CORRECTION)
-
     i = np.random.choice(3)
     return images[i], angles[i]
 
@@ -105,27 +102,31 @@ def random_translation(image, angle, range_x=100, range_y=10):
     return image, angle
 
 
-def augment(center_image, left_image, right_image, angle):
+#def augment(center_image, left_image, right_image, angle):
+def augment(images, angles):
     """
     Augment images through flip, shift and brightness tuning
     """
     # 1. randomly pick up a image
-    image, angle = pick_image(center_image, left_image, right_image, angle)
+    image, angle = pick_image(images, angles)
 
-    # 2. add flip image in order to recognize both clockwise and counter-clockwise roads
-    # image, angle = random_flip(image, angle)
-
-    # 3. randomly adjust shift
+    # 2. randomly adjust shift
     image, angle = random_translation(image, angle)
 
-    # 4. randomly adjust brightness
+    # 3. randomly adjust brightness
     image = random_brightness(image)
 
     return image, angle
 
 
-def load_images(img_dir, img_names):
-    return [mpimg.imread(os.path.join(img_dir, img_names[i].strip().split('/')[-1])) for i in range(3)]
+def load_images(img_dir, img_names, angle):
+    images = [mpimg.imread(os.path.join(img_dir, img_names[i].strip().split('/')[-1])) for i in range(3)]
+    angles = [angle, angle+CORRECTION, angle-CORRECTION]
+    return images, angles
+
+
+def flip_images(images, angles):
+    return [cv2.flip(i, 1) for i in images], [a*(-1) for a in angles]
 
 
 def batch_generator1(img_dir, samples, batch_size=40, is_training=True):
@@ -154,26 +155,36 @@ def batch_generator1(img_dir, samples, batch_size=40, is_training=True):
 
 
 def batch_generator2(img_dir, X_data, y_data, batch_size=40, is_training=True):
-    images = np.empty([batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS])
-    angles = np.empty(batch_size)
+    batch_images = np.empty([batch_size*2, IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS])
+    batch_angles = np.empty(batch_size*2)
 
     while True:
         i = 0
         for idx in np.random.permutation(X_data.shape[0]):
             image_names = X_data[idx]
             angle = y_data[idx]
-            center_image, left_image, right_image = load_images(img_dir, image_names)
+            images, angles = load_images(img_dir, image_names, angle)
+            images_flip, angles_flip = flip_images(images, angles)
             if is_training and np.random.rand() < 0.6:
-                image, angle = augment(center_image, left_image, right_image, angle)
+                image, angle = augment(images, angles)
+                image_flip, angle_flip = augment(images_flip, angles_flip)
 
-            image = preprocess(center_image)
-            images[i] = image
-            angles[i] = angle
+                image, angle = preprocess(image), angle
+                image_flip, angle_flip = preprocess(image_flip), angle_flip
+            else:
+                image, angle = preprocess(images[0]), angles[0]
+                image_flip, angle_flip = preprocess(images_flip[0]), angles_flip[0]
+
+            batch_images[i] = image
+            batch_angles[i] = angle
             i += 1
-            if i >= batch_size:
+            batch_images[i] = image_flip
+            batch_angles[i] = angle_flip
+            i += 1
+            if i >= batch_size*2:
                 break
 
-        yield images, angles
+        yield batch_images, batch_angles
 
 
 def random_show_image(img_dir, X_data, y_data):
