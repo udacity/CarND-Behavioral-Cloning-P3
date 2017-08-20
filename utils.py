@@ -113,7 +113,7 @@ def augment(center_image, left_image, right_image, angle):
     image, angle = pick_image(center_image, left_image, right_image, angle)
 
     # 2. add flip image in order to recognize both clockwise and counter-clockwise roads
-    image, angle = random_flip(image, angle)
+    # image, angle = random_flip(image, angle)
 
     # 3. randomly adjust shift
     image, angle = random_translation(image, angle)
