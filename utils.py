@@ -3,7 +3,6 @@
 
 import os
 import cv2
-import sklearn
 import numpy as np
 import pandas as pd
 import matplotlib.image as mpimg
@@ -111,12 +110,12 @@ def augment(images, angles):
     image, angle = pick_image(images, angles)
 
     # 2. randomly flip the image
-    image, angle = random_flip(image, angle)
+    # image, angle = random_flip(image, angle)
 
-    # 2. randomly adjust shift
+    # 3. randomly adjust shift
     image, angle = random_translation(image, angle)
 
-    # 3. randomly adjust brightness
+    # 4. randomly adjust brightness
     image = random_brightness(image)
 
     return image, angle
@@ -153,7 +152,6 @@ def batch_generator(img_dir, X_data, y_data, batch_size=40, is_training=True):
             i += 1
             if i >= batch_size:
                 break
-
         yield batch_images, batch_angles
 
 
