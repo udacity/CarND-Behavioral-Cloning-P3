@@ -89,7 +89,6 @@ def main():
     X, y = utils.load_csv(csv_file)
     X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.2)
 
-
     # create train and validation generator
     train_generator = utils.batch_generator2(img_dir, X_train, y_train)
     validation_generator = utils.batch_generator2(img_dir, X_valid, y_valid)
