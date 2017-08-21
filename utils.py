@@ -27,7 +27,7 @@ def crop(image):
     """
     Crop the image (removing the sky at the top and the car front at the bottom)
     """
-    return image[60:-25, :, :]
+    return image[75:-25, :, :]
 
 
 def resize(image):
@@ -108,7 +108,7 @@ def augment(images, angles):
     image, angle = random_flip(image, angle)
 
     # 3. randomly adjust shift
-    #image, angle = random_translation(image, angle)
+    image, angle = random_translation(image, angle)
 
     # 4. randomly adjust brightness
     image = random_brightness(image)
@@ -157,8 +157,8 @@ def random_show_image(img_dir, X_data, y_data):
     image_names = X_data[idx]
     angle = y_data[idx]
 
-    center_image, left_image, right_image = load_images(img_dir, image_names)
-    image, _ = augment(center_image, left_image, right_image, angle)
+    images, angles = load_images(img_dir, image_names, angle)
+    image, _ = augment(images, angles)
     image = preprocess(image)
 
     plt.imshow(image)
