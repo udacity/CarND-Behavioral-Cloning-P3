@@ -103,7 +103,7 @@ def main():
     # train the model
     train_model(model,
                 train_generator,
-                10000,
+                20000,
                 validation_generator,
                 len(X_valid),
                 epochs)

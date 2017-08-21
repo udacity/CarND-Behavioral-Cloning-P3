@@ -72,20 +72,15 @@ def random_flip(image, angle):
     return image, angle
 
 
-def random_brightness(image, ratio=0.5):
+def random_brightness(image):
     """
     Randomly adjust brightness of the image.
     """
     # HSV (Hue, Saturation, Value) is also called HSB ('B' for Brightness).
-    hsv = cv2.cvtColor(image.astype(np.uint8), cv2.COLOR_RGB2HSV)
-    brightness = np.float64(hsv[:, :, 2])
-    brightness = brightness * (1.0 + np.random.uniform(-ratio, ratio))
-    brightness[brightness>255] = 255
-    brightness[brightness<0] = 0
-    hsv[:, :, 2] = brightness
-    image = cv2.cvtColor(hsv, cv2.COLOR_HSV2RGB)
-
-    return image
+    hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+    ratio = 1.0 + 0.4 * (np.random.rand() - 0.5)
+    hsv[:,:,2] =  hsv[:,:,2] * ratio
+    return cv2.cvtColor(hsv, cv2.COLOR_HSV2RGB)
 
 
 def random_translation(image, angle, range_x=100, range_y=10):
@@ -110,10 +105,10 @@ def augment(images, angles):
     image, angle = pick_image(images, angles)
 
     # 2. randomly flip the image
-    # image, angle = random_flip(image, angle)
+    image, angle = random_flip(image, angle)
 
     # 3. randomly adjust shift
-    image, angle = random_translation(image, angle)
+    #image, angle = random_translation(image, angle)
 
     # 4. randomly adjust brightness
     image = random_brightness(image)
@@ -141,7 +136,7 @@ def batch_generator(img_dir, X_data, y_data, batch_size=40, is_training=True):
             image_names = X_data[idx]
             angle = y_data[idx]
             images, angles = load_images(img_dir, image_names, angle)
-            if is_training and np.random.rand() < 0.5:
+            if is_training and np.random.rand() < 0.6:
                 image, angle = augment(images, angles)
                 image = preprocess(image)
             else:
