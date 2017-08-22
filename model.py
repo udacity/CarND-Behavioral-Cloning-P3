@@ -1,15 +1,17 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
+import os
+import argparse
 import matplotlib.pyplot as plt
 from keras.models import Sequential
 from keras.layers import Flatten, Dense, Lambda, Conv2D, Dropout
 from keras.optimizers import Adam
 from keras.callbacks import ModelCheckpoint
 from sklearn.model_selection import train_test_split
+
 import utils
 
-BATCH_SIZE_MULTIPLIER = 250
 
 def build_model(keep_prob):
     """
@@ -33,7 +35,7 @@ def build_model(keep_prob):
     return model
 
 
-def compile_model(model, learning_rate=0.001):
+def compile_model(model, learning_rate):
     """
     Compile the model
     """
@@ -61,11 +63,6 @@ def train_model(model, train_gen, n_train, validation_gen, n_validation, n_epoch
     return history
 
 
-def get_history_keys(history_object):
-    # print the keys contained in the history object
-    return history_object.history.keys()
-
-
 def draw_metrics(history_object):
     """
     plot the training and validation loss for each epoch
@@ -80,32 +77,46 @@ def draw_metrics(history_object):
 
 
 def main():
-    csv_file = 'data/driving_log.csv'
-    img_dir = 'data/IMG/'
-    epochs = 3
-    keep_prob = 0.5
+    # parse command-line
+    parser = argparse.ArgumentParser(description='CarND Behavioral Cloning')
+    parser.add_argument('-d', help='data directory',        dest='data_dir',          type=str,   default='data')
+    parser.add_argument('-t', help='test size fraction',    dest='test_size',         type=float, default=0.2)
+    parser.add_argument('-k', help='drop out probability',  dest='keep_prob',         type=float, default=0.5)
+    parser.add_argument('-n', help='number of epochs',      dest='nb_epoch',          type=int,   default=10)
+    parser.add_argument('-s', help='samples per epoch',     dest='samples_per_epoch', type=int,   default=20000)
+    parser.add_argument('-b', help='batch size',            dest='batch_size',        type=int,   default=40)
+    parser.add_argument('-l', help='learning rate',         dest='learning_rate',     type=float, default=1.0e-4)
+    args = parser.parse_args()
+
+    print('-' * 30)
+    print('Parameters')
+    print('-' * 30)
+    for key, value in vars(args).items():
+        print('{:<20} := {}'.format(key, value))
+    print('-' * 30)
 
     # split validation set from training set
-    X, y = utils.load_csv(csv_file)
-    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.2)
+    X, y = utils.load_csv(args.data_dir)
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=args.test_size, random_state=0)
 
     # create train and validation generator
-    train_generator = utils.batch_generator(img_dir, X_train, y_train)
-    validation_generator = utils.batch_generator(img_dir, X_valid, y_valid, is_training=False)
+    img_dir = os.path.join(args.data_dir, 'IMG')
+    train_generator = utils.batch_generator(img_dir, X_train, y_train, batch_size=args.batch_size)
+    validation_generator = utils.batch_generator(img_dir, X_valid, y_valid, batch_size=args.batch_size, is_training=False)
 
     # build model
-    model = build_model(keep_prob)
+    model = build_model(args.keep_prob)
 
     # compile the model
-    compile_model(model)
+    compile_model(model, args.learning_rate)
 
     # train the model
     train_model(model,
                 train_generator,
-                10000,
+                args.samples_per_epoch,
                 validation_generator,
                 len(X_valid),
-                epochs)
+                args.nb_epoch)
 
 
 if __name__ == "__main__":

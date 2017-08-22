@@ -13,11 +13,11 @@ IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS = 66, 200, 3
 INPUT_SHAPE = (IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS)
 
 
-def load_csv(file):
+def load_csv(data_dir):
     """
     Load training data
     """
-    data_df = pd.read_csv(file)
+    data_df = pd.read_csv(os.path.join(data_dir, 'driving_log.csv'))
     X = data_df[['center', 'left', 'right']].values
     y = data_df['steering'].values
     return X, y
@@ -27,7 +27,7 @@ def crop(image):
     """
     Crop the image (removing the sky at the top and the car front at the bottom)
     """
-    return image[50:-25, :, :]
+    return image[40:-20, :, :]
 
 
 def resize(image):
