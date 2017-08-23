@@ -2,6 +2,7 @@
 # encoding: utf-8
 
 import os
+import math
 import argparse
 import matplotlib.pyplot as plt
 from keras.models import Sequential
@@ -83,7 +84,6 @@ def main():
     parser.add_argument('-t', help='test size fraction',    dest='test_size',         type=float, default=0.2)
     parser.add_argument('-k', help='drop out probability',  dest='keep_prob',         type=float, default=0.5)
     parser.add_argument('-n', help='number of epochs',      dest='nb_epoch',          type=int,   default=10)
-    parser.add_argument('-s', help='samples per epoch',     dest='samples_per_epoch', type=int,   default=20000)
     parser.add_argument('-b', help='batch size',            dest='batch_size',        type=int,   default=40)
     parser.add_argument('-l', help='learning rate',         dest='learning_rate',     type=float, default=1.0e-4)
     args = parser.parse_args()
@@ -111,12 +111,15 @@ def main():
     compile_model(model, args.learning_rate)
 
     # train the model
-    train_model(model,
-                train_generator,
-                args.samples_per_epoch,
-                validation_generator,
-                len(X_valid),
-                args.nb_epoch)
+    num_train_samples = math.ceil(len(X_train) / args.batch_size) * args.batch_size
+    history = train_model(model,
+                          train_generator,
+                          num_train_samples,
+                          validation_generator,
+                          len(X_valid),
+                          args.nb_epoch)
+
+    draw_metrics(history)
 
 
 if __name__ == "__main__":
