@@ -4,19 +4,14 @@ import cv2
 import random
 import numpy as np
 import h5py
+from keras.models import load_model
 from steering_neural_network import SteeringNeuralNetwork
 
-DATA_DIR = "data"
-DATA_H5_PATHS = {
-    "TRAIN_PATH": os.path.join(DATA_DIR, "train.h5"),
-    "VALID_PATH": os.path.join(DATA_DIR, "valid.h5"),
-    "TEST_PATH": os.path.join(DATA_DIR, "test.h5")
-}
 
-
-def create_data_maps(file_path, randomize=True):
+def create_data_maps(data_dir, csv_file_name, randomize=True):
 
     lines = []
+    file_path = os.path.join(data_dir, csv_file_name)
     with open(file_path) as csv_file:
         reader = csv.reader(csv_file)
         next(reader)  # skip the first line
@@ -29,7 +24,7 @@ def create_data_maps(file_path, randomize=True):
         source_path = line[0]
         tokens = os.path.split(source_path)
         filename = tokens[-1]
-        local_path = os.path.join(DATA_DIR, "IMG", filename)
+        local_path = os.path.join(data_dir, "IMG", filename)
 
         # Extract the files names and steering angle mapping
         data_mappings.append((local_path, line[3]))
@@ -74,6 +69,7 @@ def load_images(image_paths, resize_scale=None):
         if isinstance(resize_scale, (float, int)):
             final_size = (int(resize_scale * img.shape[1]), int(resize_scale * img.shape[0]))
             img = cv2.resize(img, final_size)
+            img.show()
         images.append(img)
 
     return np.array(images)
@@ -117,8 +113,15 @@ def save_as_h5_data(data_map, save_to_path):
             row_count += labels_chunk.shape[0]
 
 
-def read_data(split_ratio=(0.7, 0.2, 0.1)):
+def read_data(data_dir, split_ratio=(0.7, 0.2, 0.1)):
 
+    DATA_H5_PATHS = {
+        "TRAIN_PATH": os.path.join(data_dir, "train.h5"),
+        "VALID_PATH": os.path.join(data_dir, "valid.h5"),
+        "TEST_PATH": os.path.join(data_dir, "test.h5")
+    }
+
+    # data_exists = False
     data_exists = True
     for path in DATA_H5_PATHS.values():
         if not os.path.isfile(path):
@@ -129,7 +132,7 @@ def read_data(split_ratio=(0.7, 0.2, 0.1)):
         print("Training, validation, and test data were already generated.")
 
     else:
-        data_maps = create_data_maps(os.path.join(DATA_DIR, "driving_log.csv"))
+        data_maps = create_data_maps(data_dir, "driving_log.csv", randomize=True)
         train_data_map, valid_data_map, test_data_map = split_data_set(data_maps, split_ratio)
 
         save_as_h5_data(train_data_map, DATA_H5_PATHS["TRAIN_PATH"])
@@ -143,25 +146,58 @@ def read_data(split_ratio=(0.7, 0.2, 0.1)):
 
     return training_data, validation_data, test_data
 
-# Load the Data
-train_data, valid_data, test_data = read_data()
-train_images = train_data["images"]
-train_labels = train_data["labels"]
-valid_images = valid_data["images"]
-valid_labels = valid_data["labels"]
-test_images = test_data["images"]
-test_labels = test_data["labels"]
+
+def train_model(data_dir_paths, model_name="steering_model.h5"):
+
+    new_model = True
+    for data_dir in data_dir_paths:
+        print("Training on data in '%s'\n" % data_dir_paths)
+        # Load the Data
+        train_data, valid_data, test_data = read_data(data_dir)
+        train_images = train_data["images"]
+        train_labels = train_data["labels"]
+        valid_images = valid_data["images"]
+        valid_labels = valid_data["labels"]
+        test_images = test_data["images"]
+        test_labels = test_data["labels"]
 
 
-# Build the neural network
-image_shape = train_images[0].shape
-output_shape = 1
+        # Build the neural network
+        image_shape = train_images[0].shape
+        output_shape = 1
 
-steering_network = SteeringNeuralNetwork(image_shape, output_shape)
+        model = None
+        if not new_model:
+            # Load partly trained model
+            model = load_model(model_name)
 
-steering_network.model.compile(optimizer="adam", loss="mse")
-steering_network.model.fit(x=train_images, y=train_labels,
-                           validation_data=(valid_images, valid_labels),
-                           batch_size=64, epochs=2000, shuffle="batch")
+        steering_network = SteeringNeuralNetwork(image_shape, output_shape, curr_model=model)
 
-steering_network.model.save("steering_model.h5")
+        steering_network.model.compile(optimizer="adam", loss="mse")
+        steering_network.model.fit(x=train_images, y=train_labels,
+                                   validation_data=(valid_images, valid_labels),
+                                   batch_size=32, epochs=20, shuffle="batch")
+        steering_network.model.save("steering_model.h5")
+        # Test the model
+        loss = steering_network.model.evaluate(test_images, test_labels, batch_size=32, verbose=1, sample_weight=None)
+        print("\nTrained on data in '%s'" % data_dir_paths)
+        print("\nTest Loss: %4f" % (loss))
+
+        new_model = False
+        # test the data
+
+
+
+# List out all the folders with data
+udacity_data_dir = "data/udacity_data"
+new_data_dirs = ["data/170609_data/JungleTrack",
+                 "data/170609_data/LakeTrack",
+                 "data/170727_data/JungleTrack",
+                 "data/170727_data/LakeTrack"]
+
+train_data_dir = [udacity_data_dir]
+for new_data_dir in new_data_dirs:
+    for dated_data_dir in os.listdir(new_data_dir):
+        train_data_dir.append(os.path.join(new_data_dir, dated_data_dir))
+
+train_model(data_dir_paths=train_data_dir)
