@@ -147,20 +147,74 @@ def read_data(data_dir, split_ratio=(0.7, 0.2, 0.1)):
     return training_data, validation_data, test_data
 
 
+def remove_straight_angle(train_data, remove_percent=0.70):
+    filtered_data_set = {"images": [], "labels": []}
+    train_images = train_data["images"]
+    train_labels = train_data["labels"]
+    for i in range(len(train_labels)):
+        if -0.2 < train_labels[i] < 0.2 and random.random() < remove_percent:
+            pass
+        else:
+            filtered_data_set["images"].append(train_images[i])
+            filtered_data_set["labels"].append(train_labels[i])
+
+    filtered_data_set["images"] = np.asarray(filtered_data_set["images"])
+    filtered_data_set["labels"] = np.asarray(filtered_data_set["labels"])
+
+    return filtered_data_set
+
+
+def shuffle_data(x, y):
+    zipped_data = list(zip(x, y))
+    random.shuffle(zipped_data)
+    return list(zip(*zipped_data))
+
+
+def data_generator(raw_X, raw_y, batch_size=64):
+    image_paths, angles = shuffle_data(raw_X, raw_y)
+    X = []
+    y = []
+    while True:
+        for i in range(len(angles)):
+            img = cv2.imread(image_paths[i])
+            angle = angles[i]
+            #img = preprocess_image(img)
+
+            X.append(img)
+            y.append(angle)
+            if len(X) == batch_size:
+                yield (np.array(X), np.array(y))
+                X = []
+                y = []
+                image_paths, angles = shuffle_data(raw_X, raw_y)
+            # flip horizontally and invert steer angle, if magnitude is > 0.33
+            if abs(angle) > 0.33:
+                img = cv2.flip(img, 1)
+                angle *= -1
+                X.append(img)
+                y.append(angle)
+                if len(X) == batch_size:
+                    yield (np.array(X), np.array(y))
+                    X = []
+                    y = []
+                    image_paths, angles = shuffle_data(raw_X, raw_y)
+                    
+
 def train_model(data_dir_paths, model_name="steering_model.h5"):
 
-    new_model = True
+    new_model = False
     for data_dir in data_dir_paths:
-        print("Training on data in '%s'\n" % data_dir_paths)
+        print("Training on data in '%s'\n" % data_dir)
         # Load the Data
         train_data, valid_data, test_data = read_data(data_dir)
+        train_data = remove_straight_angle(train_data)
+
         train_images = train_data["images"]
         train_labels = train_data["labels"]
         valid_images = valid_data["images"]
         valid_labels = valid_data["labels"]
         test_images = test_data["images"]
         test_labels = test_data["labels"]
-
 
         # Build the neural network
         image_shape = train_images[0].shape
@@ -176,12 +230,12 @@ def train_model(data_dir_paths, model_name="steering_model.h5"):
         steering_network.model.compile(optimizer="adam", loss="mse")
         steering_network.model.fit(x=train_images, y=train_labels,
                                    validation_data=(valid_images, valid_labels),
-                                   batch_size=32, epochs=20, shuffle="batch")
+                                   batch_size=32, epochs=10, shuffle="batch")
         steering_network.model.save("steering_model.h5")
         # Test the model
         loss = steering_network.model.evaluate(test_images, test_labels, batch_size=32, verbose=1, sample_weight=None)
-        print("\nTrained on data in '%s'" % data_dir_paths)
-        print("\nTest Loss: %4f" % (loss))
+        print("\nTrained on data in '%s'" % data_dir)
+        print("\nTest Loss: %4f" % loss)
 
         new_model = False
         # test the data
@@ -195,7 +249,9 @@ new_data_dirs = ["data/170609_data/JungleTrack",
                  "data/170727_data/JungleTrack",
                  "data/170727_data/LakeTrack"]
 
-train_data_dir = [udacity_data_dir]
+# train_data_dir = [udacity_data_dir]
+train_data_dir = []
+
 for new_data_dir in new_data_dirs:
     for dated_data_dir in os.listdir(new_data_dir):
         train_data_dir.append(os.path.join(new_data_dir, dated_data_dir))

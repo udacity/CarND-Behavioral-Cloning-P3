@@ -1,5 +1,5 @@
 from keras.models import Sequential
-from keras.layers import Flatten, Dense, Conv2D, MaxPooling2D, Dropout
+from keras.layers import Flatten, Dense, Conv2D, MaxPooling2D, Dropout, Lambda, BatchNormalization
 from keras.optimizers import Adam
 
 
@@ -46,6 +46,37 @@ class SteeringNeuralNetwork():
 
     @staticmethod
     def create_network(input_shape, output_shape):
+        activation = "relu"
+
+        model = Sequential()
+
+        # Normalize
+        # model.add(Lambda(lambda x: x / 127.5 - 1.0, input_shape=input_shape))
+        model.add(BatchNormalization(input_shape=input_shape, axis=1))
+
+        model.add(Conv2D(24, (5, 5), strides=(2, 2), activation=activation, padding='same', name="convolution0"))
+        model.add(Conv2D(36, (5, 5), strides=(2, 2), activation=activation, padding='same', name="convolution1"))
+        model.add(Conv2D(48, (5, 5), strides=(2, 2), activation=activation, padding='same', name="convolution2"))
+        model.add(Conv2D(64, (3, 3), activation=activation, padding='same', name="convolution4"))
+        model.add(Conv2D(64, (3, 3), activation=activation, padding='same', name="convolution5"))
+
+        model.add(Flatten())
+
+        model.add(Dense(100, activation=activation, name="dense0"))
+        model.add(Dropout(0.5))
+
+        model.add(Dense(50, activation=activation, name="dense1"))
+        model.add(Dense(output_shape, name="output"))
+
+        model.add(Dense(10, activation=activation, name="dense2"))
+        model.add(Dense(output_shape, name="output"))
+
+        adam = Adam(lr=1e-04)
+        model.compile(optimizer=adam, loss="mse")
+        return model
+
+    @staticmethod
+    def create_network1(input_shape, output_shape):
         activation = "relu"
 
         model = Sequential()
