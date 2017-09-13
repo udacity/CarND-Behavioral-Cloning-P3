@@ -30,12 +30,10 @@ def preprocess_image(img):
     received in RGB)
     '''
     # original shape: 160x320x3, input shape for neural net: 66x200x3
-    new_img = img[35:135, 80:240, :]
+    new_img = img[35:135, :, :]
     # apply subtle blur
     new_img = cv2.GaussianBlur(new_img, (3, 3), 0)
-    # scale to 66x200x3 (same as nVidia)
     new_img = cv2.resize(new_img,(64, 64), interpolation=cv2.INTER_AREA)
-
     return new_img
 
 

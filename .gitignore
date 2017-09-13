@@ -1,4 +1,4 @@
 # Created by .ignore support plugin (hsz.mobi)
 .idea/
 data/
-steering_model.h5
+steering_model*.h5
