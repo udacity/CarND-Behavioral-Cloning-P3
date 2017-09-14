@@ -24,17 +24,17 @@ prev_image_array = None
 
 
 def preprocess_image(img):
-    '''
-    Method for preprocessing images: this method is the same used in drive.py, except this version uses
-    BGR to YUV and drive.py uses RGB to YUV (due to using cv2 to read the image here, where drive.py images are
-    received in RGB)
-    '''
-    # original shape: 160x320x3, input shape for neural net: 66x200x3
-    new_img = img[35:135, :, :]
-    # apply subtle blur
-    new_img = cv2.GaussianBlur(new_img, (3, 3), 0)
-    new_img = cv2.resize(new_img,(64, 64), interpolation=cv2.INTER_AREA)
-    return new_img
+    # NOTE: this must be the same as the "preprocess_image" function
+    # in "train_steering_model.py"
+
+    # Crop the image to focus on the road
+    processed_img = img[55:135, :, :]
+    # Blur the image
+    processed_img = cv2.GaussianBlur(processed_img, (3, 3), 0)
+    # scale to 64x64x3
+    processed_img = cv2.resize(processed_img,(64, 64), interpolation=cv2.INTER_AREA)
+
+    return processed_img
 
 
 class SimplePIController:
