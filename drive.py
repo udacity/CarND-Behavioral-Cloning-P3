@@ -3,6 +3,7 @@ import base64
 from datetime import datetime
 import os
 import shutil
+import cv2
 
 import numpy as np
 import socketio
@@ -20,6 +21,20 @@ sio = socketio.Server()
 app = Flask(__name__)
 model = None
 prev_image_array = None
+
+
+def preprocess_image(img):
+    # NOTE: this must be the same as the "preprocess_image" function
+    # in "train_steering_model.py"
+
+    # Crop the image to focus on the road
+    processed_img = img[55:135, :, :]
+    # Blur the image
+    processed_img = cv2.GaussianBlur(processed_img, (3, 3), 0)
+    # scale to 64x64x3
+    processed_img = cv2.resize(processed_img,(64, 64), interpolation=cv2.INTER_AREA)
+
+    return processed_img
 
 
 class SimplePIController:
@@ -61,6 +76,8 @@ def telemetry(sid, data):
         imgString = data["image"]
         image = Image.open(BytesIO(base64.b64decode(imgString)))
         image_array = np.asarray(image)
+        image_array = preprocess_image(image_array)
+        #image.show()
         steering_angle = float(model.predict(image_array[None, :, :, :], batch_size=1))
 
         throttle = controller.update(float(speed))
