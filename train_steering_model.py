@@ -43,7 +43,7 @@ def read_data_set(data_dir, csv_file_name):
 
             # don't add if angle is straight "remove_percent" of times
             remove_percent = 0.75
-            if -0.2 < modified_angle < 0.2 and random.random() < remove_percent:
+            if -0.33 < modified_angle < 0.33 and random.random() < remove_percent:
                 pass
             else:
                 data_set.append((local_path, modified_angle))
@@ -171,17 +171,16 @@ def data_generator(data_set, batch_size=64, add_noise=False):
             angle = angles[i]
 
             img = preprocess_image(img)
-            if add_noise and random.random() < 0.0:
-                img = random_noise(img, mode="s&p", amount=0.05)
 
             if add_noise and random.random() < 0.0:
                 img, angle = random_shear(img, angle)
 
-            if add_noise and random.random() < 0.5:
+            if add_noise and random.random() < 0.3:
                 img = random_brightness(img)
 
             if add_noise and random.random() < 0.5:
-                img, angle = random_flip(img, angle)
+                if -0.25 < angle < 0.25:
+                    img, angle = random_flip(img, angle)
 
             # cv2.imshow("img", img)
             # cv2.waitKey(0)
@@ -233,7 +232,7 @@ def train_model(data_dir_paths, model_name="steering_model.h5"):
     checkpoint = ModelCheckpoint('steering_model{epoch:02d}.h5')
     steering_network.model.fit_generator(train_generator, steps_per_epoch=len(train_data_sets)/BATCH_SIZE,
                                          validation_data=valid_generator, validation_steps=len(valid_data_sets)/BATCH_SIZE,
-                                         epochs=10, verbose=1, callbacks=[checkpoint])
+                                         epochs=20, verbose=1, callbacks=[checkpoint])
 
     steering_network.model.save("steering_model.h5")
 
@@ -255,10 +254,10 @@ new_data_dirs = [
 
 train_data_dir = [udacity_data_dir]
 
-for new_data_dir in new_data_dirs:
-    for dated_data_dir in os.listdir(new_data_dir):
-        train_data_dir.append(os.path.join(new_data_dir, dated_data_dir))
-
+# for new_data_dir in new_data_dirs:
+#     for dated_data_dir in os.listdir(new_data_dir):
+#         train_data_dir.append(os.path.join(new_data_dir, dated_data_dir))
+#
 
 train_model(data_dir_paths=train_data_dir)
 
