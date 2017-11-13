@@ -3,6 +3,7 @@ import base64
 from datetime import datetime
 import os
 import shutil
+import cv2
 
 import numpy as np
 import socketio
@@ -21,6 +22,16 @@ app = Flask(__name__)
 model = None
 prev_image_array = None
 
+
+'''-------------------------------------------
+    Hyper Parameters
+--------------------------------------------'''
+preprocess = True
+set_speed = 10
+
+def preprocess_image(img):
+    # new_img = cv2.cvtColor(img, cv2.COLOR_RGB2YUV)
+    return img
 
 class SimplePIController:
     def __init__(self, Kp, Ki):
@@ -44,7 +55,6 @@ class SimplePIController:
 
 
 controller = SimplePIController(0.1, 0.002)
-set_speed = 9
 controller.set_desired(set_speed)
 
 
@@ -61,7 +71,10 @@ def telemetry(sid, data):
         imgString = data["image"]
         image = Image.open(BytesIO(base64.b64decode(imgString)))
         image_array = np.asarray(image)
-        steering_angle = float(model.predict(image_array[None, :, :, :], batch_size=1))
+        img = preprocess_image(image_array)
+        transformed_image_array = img[None, :, :, :]
+        # This model currently assumes that the features of the model are just the images. Feel free to change this.
+        steering_angle = float(model.predict(transformed_image_array, batch_size=1))
 
         throttle = controller.update(float(speed))
 
