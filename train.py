@@ -6,6 +6,10 @@ from keras.layers import Flatten, Dense
 import sys
 import argparse
 import os
+from keras.wrappers.scikit_learn import KerasRegressor
+from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import cross_val_score
+
 
 
 def parse_args(arguments):
@@ -36,8 +40,15 @@ def parse_args(arguments):
     parser.add_argument('-v', '--validation-split', help="Percentage of data to hold out for validation.",
                         default=0.2, dest='validation_split')
     parser.add_argument('-s', '--shuffle', help="Shuffles data prior to training.",
-                        choices=[True, False], default=True, dest='shuffle')
-
+                        choices=['True', 'False'], default='True', dest='shuffle')
+    parser.add_argument('-u', '--units', help="Number of dense units per layer.",
+                        default=1, dest='units')
+    parser.add_argument('-c', '--configuration', help="File path for optional configuration file.",
+                        dest='config')
+    parser.add_argument('-g', '--grid-search', help="Indicates whether or not to use Grid Search in training.",
+                        choices=['True', 'False'], default='False', dest='use_grid_search')
+    parser.add_argument('-f', '--folds', help='Number of folds to use for k-crossfolds validation.',
+                        dest='folds')
     return vars(parser.parse_args(arguments))
 
 def get_log_lines(path):
@@ -74,14 +85,16 @@ def get_images_and_measurements(path, lines):
 
     return np.array(images), np.array(measurements)
 
-def create_model(input_shape=(160,320,3)):
+def create_model(units=1, loss_function='mse', optimizer='adam', input_shape=(160,320,3)):
     """
     Constructs Keras model object
-    :return: Keras model object
+    :return: Compiled Keras model object
     """
     model = Sequential()
     model.add(Flatten(input_shape=input_shape))
-    model.add(Dense(1))
+    model.add(Dense(units))
+
+    model.compile(loss=loss_function, optimizer=optimizer)
 
     return model
 
@@ -100,15 +113,19 @@ if __name__ == '__main__':
     X_train = images
     y_train = measurements
 
-    model = create_model()
-
-    model.compile(loss=args['loss_function'], optimizer=args['optimizer'])
-    model.fit(X_train, y_train, nb_epoch=args['num_epochs'],
-              validation_split=args['validation_split'], shuffle=args['shuffle'])
-
-    if args['output_path'].endswith('.h5'):
-        model.save(args['output_path'])
+    if args['use_grid_search'] == 'True':
+        model = KerasRegressor(build_fn=create_model, epochs=args['num_epochs'])
+        kfold = StratifiedKFold(n_splits=args['folds'], shuffle=args['shuffle'], random_state=73)
+        results = cross_val_score(model, X_train, y_train, cv=kfold)
+        print("Cross validation result: " + str(results.mean()))
     else:
-        model.save(args['output_path'] + '.h5')
+        model = create_model(args['units'], args['loss_function'], args['optimizer'])
+        model.fit(X_train, y_train, nb_epoch=args['num_epochs'],
+                  validation_split=args['validation_split'], shuffle=args['shuffle'])
+
+        if args['output_path'].endswith('.h5'):
+            model.save(args['output_path'])
+        else:
+            model.save(args['output_path'] + '.h5')
 
     sys.exit(0)
