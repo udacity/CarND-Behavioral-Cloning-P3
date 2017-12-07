@@ -1,0 +1,13 @@
+{
+  "use_grid_search": "False",
+  "input_path": "/simulator_data/simple_3",
+  "output_path": "/output/simple_3/simple_3_model_with_conv",
+  "loss_function": "mse",
+  "epochs": 75,
+  "dropout": 0.5,
+  "use_tensorboard": "True",
+  "units": 1,
+  "tensorboard_log_dir": "/output/simple_3/logs",
+  "old_image_root": "/Users/saracollins/Desktop/",
+  "new_image_root": "/home/ubuntu/"
+}

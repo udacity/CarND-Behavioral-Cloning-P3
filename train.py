@@ -62,7 +62,7 @@ def get_log_lines(path):
             lines.append(line)
     return lines
 
-def get_images_and_measurements(path, lines):
+def get_images_and_measurements(path, lines, old_root=None, new_root=None):
     """
     Gets images and measurements from training images.
     :param path: Input path for images.
@@ -73,6 +73,10 @@ def get_images_and_measurements(path, lines):
 
     for line in lines:
         source_path = line[0]
+
+        if new_root and old_root:
+            source_path = source_path.replace(old_root, new_root)
+
         filename = source_path.split('/')[-1]
         current_path = path + '/IMG/' + filename
         image = cv2.imread(current_path)
@@ -132,7 +136,8 @@ if __name__ == '__main__':
     all_measurements = []
 
     for record in lines:
-        images, measurements = get_images_and_measurements(record[0], record[1])
+        images, measurements = get_images_and_measurements(record[0], record[1], config['old_image_root'],
+                                                           config['new_image_root'])
         [all_images.append(image) for image in images]
         [all_measurements.append(measurement) for measurement in measurements]
 
