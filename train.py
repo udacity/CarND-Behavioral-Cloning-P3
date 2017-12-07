@@ -37,6 +37,17 @@ def load_config(config_name):
         configuration = json.load(config_file)
         return configuration
 
+def get_file_list(dir_path):
+    """
+    Get list of files
+    :param dir_path:
+    :return: List of driving log files to open.
+    """
+    file_list = []
+    for root, dirs, files in os.walk(dir_path):
+        [file_list.append(os.path.join(root, file)) for file in files if file.endswith('.csv')]
+    return file_list
+
 def get_log_lines(path):
     """
     Gets list of records from driving log.
@@ -44,7 +55,8 @@ def get_log_lines(path):
     :return: List of driving log records.
     """
     lines = []
-    with open(path + '/driving_log.csv') as csvfile:
+    #with open(path + '/driving_log.csv') as csvfile:
+    with open(path) as csvfile:
         reader = csv.reader(csvfile)
         for line in reader:
             lines.append(line)
@@ -69,7 +81,7 @@ def get_images_and_measurements(path, lines):
         measurement = float(line[3])
         measurements.append(measurement)
 
-    return np.array(images), np.array(measurements)
+    return images, measurements
 
 def create_model(units=1, loss_function='mse', optimizer='adam', input_shape=(160,320,3)):
     """
@@ -77,10 +89,10 @@ def create_model(units=1, loss_function='mse', optimizer='adam', input_shape=(16
     :return: Compiled Keras model object
     """
     model = Sequential()
-    #model.add(Convolution2D(160, 3, 3, input_shape=input_shape))
-    #model.add(MaxPooling2D((2,2)))
-    #model.add(Dropout(0.5))
-    #model.add(Activation('relu'))
+    model.add(Convolution2D(160, 3, 3, input_shape=input_shape))
+    model.add(MaxPooling2D((2,2)))
+    model.add(Dropout(0.5))
+    model.add(Activation('relu'))
     model.add(Lambda(lambda x: (x / 255.0) - 0.5, input_shape=input_shape))
     model.add(Flatten())
     model.add(Dense(units))
@@ -101,7 +113,6 @@ def custom_get_params(self, **params):
     return res
 
 
-
 if __name__ == '__main__':
 
     # Set TensorFlow logging so it isn't so verbose.
@@ -112,15 +123,27 @@ if __name__ == '__main__':
     config = load_config(args['config'])
 
     # Load data
-    lines = get_log_lines(config['input_path'])
-    images, measurements = get_images_and_measurements(config['input_path'], lines)
+    #lines = get_log_lines(config['input_path'])
+    log_paths = get_file_list(config['input_path'])
+    lines = []
+    [lines.append([path, get_log_lines(path)]) for path in log_paths]
+
+    all_images = []
+    all_measurements = []
+
+    for record in lines:
+        images, measurements = get_images_and_measurements(record[0], record[1])
+        [all_images.append(image) for image in images]
+        [all_measurements.append(measurement) for measurement in measurements]
+
     use_grid_search = config['use_grid_search']
 
     # Designate X and y data
-    X_train = images
-    y_train = measurements
+    X_train = np.array(all_images)
+    y_train = np.array(all_measurements)
 
     if config["use_grid_search"] == 'True':
+        # TODO: The grid search stuff is still buggy. Needs to be fixed before being used.
         from keras.wrappers.scikit_learn import BaseWrapper
         import copy
 
