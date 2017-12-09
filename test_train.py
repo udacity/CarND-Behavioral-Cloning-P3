@@ -26,5 +26,20 @@ class SDCSimulationTrain(unittest.TestCase):
         loaded_configuration = load_config(conf_path)
         self.assertDictEqual(loaded_configuration, tester_configuration)
 
+    def test_get_file_list(self):
+        directory_path = 'test/test_data'
+        test_file_list = ['test/test_data/inside_in_grass_fast/driving_log.csv',
+                      'test/test_data/inside_just_at_curb_good/driving_log.csv']
+        file_list = get_file_list(directory_path)
+        self.assertEqual(file_list, test_file_list)
+
+    def test_get_log_lines(self):
+        test_file_list = ['test/test_data/inside_in_grass_fast/driving_log.csv',
+                      'test/test_data/inside_just_at_curb_good/driving_log.csv']
+        test_lines = []
+        [test_lines.append([path, get_log_lines(path)]) for path in test_file_list]
+        reference_value = '30.19097'
+        self.assertEqual(test_lines[1][1][1][6], reference_value)
+
 if __name__ == '__main__':
     unittest.main()
