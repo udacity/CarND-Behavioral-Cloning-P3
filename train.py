@@ -13,8 +13,11 @@ from keras.layers.pooling import MaxPooling2D
 import json
 from keras.callbacks import TensorBoard
 from time import time
+import logging
+import pickle
 
-
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def parse_args(arguments):
     """
@@ -23,7 +26,7 @@ def parse_args(arguments):
     :return: Dict of variables parsed from the arguments
     """
     parser = argparse.ArgumentParser(description="Trains a behavioral cloning model from a given training file set.")
-    parser.add_argument('-c', '--configuration', help="File path for optional configuration file.",
+    parser.add_argument('-c', '--configuration', help="File path configuration file", required=True,
                         dest='config')
 
     return vars(parser.parse_args(arguments))
@@ -77,13 +80,17 @@ def get_images_and_measurements(path, lines, old_root=None, new_root=None):
         if new_root and old_root:
             source_path = source_path.replace(old_root, new_root)
 
-        filename = source_path.split('/')[-1]
-        current_path = path + '/IMG/' + filename
-        image = cv2.imread(current_path)
-        images.append(image)
-
-        measurement = float(line[3])
-        measurements.append(measurement)
+        #filename = source_path.split('/')[-1]
+        #print('Initial filename path' + source_path)
+        #current_path = os.path.join((source_path + '/IMG/'), filename)
+        #print('Image Path: ' + current_path)
+        image = cv2.imread(source_path)
+        if image != None:
+            if image.shape != (160, 320, 3):
+                image = np.reshape(image, (160, 320, 3))
+            images.append(image)
+            measurement = float(line[3])
+            measurements.append(measurement)
 
     return images, measurements
 
@@ -144,8 +151,10 @@ if __name__ == '__main__':
     use_grid_search = config['use_grid_search']
 
     # Designate X and y data
-    X_train = np.array(all_images)
+    X_train = np.ndarray(all_images)
     y_train = np.array(all_measurements)
+
+    pickle.dump(X_train, open('x_train_file.pkl','wb'))
 
     if config["use_grid_search"] == 'True':
         # TODO: The grid search stuff is still buggy. Needs to be fixed before being used.

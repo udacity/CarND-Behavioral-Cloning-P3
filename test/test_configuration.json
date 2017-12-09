@@ -1,0 +1,13 @@
+{
+  "use_grid_search": "False",
+  "input_path": "test/test_data",
+  "output_path": "test/test_model",
+  "loss_function": "mse",
+  "epochs": 75,
+  "dropout": 0.5,
+  "use_tensorboard": "True",
+  "units": 1,
+  "tensorboard_log_dir": "test/test_logs",
+  "old_image_root": "test/test_data",
+  "new_image_root": "test/test_data"
+}
