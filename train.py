@@ -153,61 +153,24 @@ if __name__ == '__main__':
     X_train = images
     y_train = measurements
 
-    pickle.dump(X_train, open('x_train_file.pkl','wb'))
+    model = create_model(config['units'])
 
-    use_grid_search = config['use_grid_search']
-
-    if config["use_grid_search"] == 'True':
-        # TODO: The grid search stuff is still buggy. Needs to be fixed before being used.
-        from keras.wrappers.scikit_learn import BaseWrapper
-        import copy
-
-        # Fix the Keras deep copy problem
-        BaseWrapper.get_params = custom_get_params
-
-        # Set the model
-        model = KerasRegressor(build_fn=create_model, verbose=1)
-
-        # Set up the parameter grid
-        # TODO: Check to see which config items that aren't used for something else are lists.
-        epochs = config["epochs"]
-
-        param_grid = dict(epochs=epochs)
-        grid = GridSearchCV(estimator=model, param_grid=param_grid)
-
-        # Establish tensorboard
-        tensorboard = TensorBoard(log_dir=config["tensorboard_log_dir"] + "/{}".format(time()))
-
-        # Fit the model using Grid Search
-        grid_result = grid.fit(X_train, y_train, fit_params={'callbacks': [tensorboard], 'shuffle':True, 'validation_split':0.5})
-
-        # Display model output
-        print("Best: %f using %s" % (grid_result.best_score_, grid_result.best_params_))
-        means = grid_result.cv_results_['mean_test_score']
-        stdvs = grid_result.cv_results_['std_test_score']
-        params = grid_result.cv_results_['params']
-        for mean, stdev, parameters in zip(means, stdvs, params):
-            print("%f (%f) with: %r" % (mean, stdev, parameters))
-
+    # Establish tensorboard
+    if config["use_tensorboard"] == "True":
+        tensorboard = TensorBoard(log_dir=config["tensorboard_log_dir"] + "/{}".format(time()), histogram_freq=1,
+                                  write_graph=True, write_images=True)
+        checkpointer = ModelCheckpoint(config['checkpoint_directory'] + '/ckpt.h5', verbose=1, save_best_only=True)
+        model.fit(X_train, y_train, nb_epoch=config['epochs'],
+              validation_split=0.2, shuffle=True, callbacks=[checkpointer, tensorboard])
     else:
-        model = create_model(config['units'])
-
-        # Establish tensorboard
-        if config["use_tensorboard"] == "True":
-            tensorboard = TensorBoard(log_dir=config["tensorboard_log_dir"] + "/{}".format(time()), histogram_freq=1,
-                                      write_graph=True, write_images=True)
-            checkpointer = ModelCheckpoint(config['checkpoint_directory'] + '/ckpt.h5', verbose=1, save_best_only=True)
-            model.fit(X_train, y_train, nb_epoch=config['epochs'],
-                  validation_split=0.2, shuffle=True, callbacks=[checkpointer, tensorboard])
-        else:
-            checkpointer = ModelCheckpoint(config['checkpoint_directory'] + '/ckpt.h5', verbose=1, save_best_only=True)
-            model.fit(X_train, y_train, nb_epoch=config['epochs'],
-                  validation_split=0.2, shuffle=True, callbacks=[checkpointer])
+        checkpointer = ModelCheckpoint(config['checkpoint_directory'] + '/ckpt.h5', verbose=1, save_best_only=True)
+        model.fit(X_train, y_train, nb_epoch=config['epochs'],
+              validation_split=0.2, shuffle=True, callbacks=[checkpointer])
 
 
-        if config['output_path'].endswith('.h5'):
-            model.save(config['output_path'])
-        else:
-            model.save(config['output_path'] + '.h5')
+    if config['output_path'].endswith('.h5'):
+        model.save(config['output_path'])
+    else:
+        model.save(config['output_path'] + '.h5')
 
     sys.exit(0)

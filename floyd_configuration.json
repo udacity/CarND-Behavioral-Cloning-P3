@@ -7,7 +7,7 @@
   "use_tensorboard": "True",
   "units": 1,
   "tensorboard_log_dir": "out/floyd_model_1/logs",
-  "old_image_root": "/home/carnd/",
-  "new_image_root": "/home/carnd/",
+  "old_image_root": "/home/carnd/simulator_data/final_push/",
+  "new_image_root": "/simulator_data/",
   "checkpoint_directory": "out/floyd_model_1/checkpoints"
 }
