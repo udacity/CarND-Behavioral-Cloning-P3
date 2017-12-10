@@ -89,7 +89,7 @@ def create_model(units=1, loss_function='mse', optimizer='adam', input_shape=(16
     model = Sequential()
     model.add(Convolution2D(160, 3, 3, input_shape=input_shape))
     model.add(MaxPooling2D((2,2)))
-    model.add(Dropout(0.5))
+    model.add(Dropout(0.2))
     model.add(Activation('relu'))
     model.add(Lambda(lambda x: (x / 255.0) - 0.5, input_shape=input_shape))
     model.add(Flatten())
@@ -193,12 +193,14 @@ if __name__ == '__main__':
 
         # Establish tensorboard
         if config["use_tensorboard"] == "True":
-            tensorboard = TensorBoard(log_dir=config["tensorboard_log_dir"] + "/{}".format(time()), histogram_freq=1)
+            tensorboard = TensorBoard(log_dir=config["tensorboard_log_dir"] + "/{}".format(time()), histogram_freq=1,
+                                      write_graph=True, write_grads=True,
+                                      write_images=True)
             model.fit(X_train, y_train, nb_epoch=config['epochs'],
-                  validation_split=0.5, shuffle=True, callbacks=[tensorboard])
+                  validation_split=0.2, shuffle=True, callbacks=[tensorboard])
         else:
             model.fit(X_train, y_train, nb_epoch=config['epochs'],
-                  validation_split=0.5, shuffle=True)
+                  validation_split=0.2, shuffle=True)
 
 
         if config['output_path'].endswith('.h5'):
