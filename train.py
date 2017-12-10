@@ -65,34 +65,21 @@ def get_log_lines(path):
             lines.append(line)
     return lines
 
-def get_images_and_measurements(path, lines, old_root=None, new_root=None):
+def get_image_and_measurement(line, old_root=None, new_root=None):
     """
     Gets images and measurements from training images.
     :param path: Input path for images.
     :return:
     """
-    images = []
-    measurements = []
+    image_path = line[0]
 
-    for line in lines:
-        source_path = line[0]
+    if new_root and old_root:
+        image_path = image_path.replace(old_root, new_root)
 
-        if new_root and old_root:
-            source_path = source_path.replace(old_root, new_root)
+    image = cv2.imread(image_path)
+    measurement = float(line[3])
 
-        #filename = source_path.split('/')[-1]
-        #print('Initial filename path' + source_path)
-        #current_path = os.path.join((source_path + '/IMG/'), filename)
-        #print('Image Path: ' + current_path)
-        image = cv2.imread(source_path)
-        if image != None:
-            if image.shape != (160, 320, 3):
-                image = np.reshape(image, (160, 320, 3))
-            images.append(image)
-            measurement = float(line[3])
-            measurements.append(measurement)
-
-    return images, measurements
+    return image, measurement
 
 def create_model(units=1, loss_function='mse', optimizer='adam', input_shape=(160,320,3)):
     """
@@ -124,6 +111,26 @@ def custom_get_params(self, **params):
     return res
 
 
+def get_all_images_and_measurements(line_tuples, old_root=None, new_root=None):
+    """
+    Retrieves individual images and measurements from all log files.
+    :param line_tuples: Line tuples extracted from log files. Each record:
+    Log file, [lines of log file].
+    :return: Images and measurements for all files.
+    """
+    all_images = []
+    all_measurements = []
+
+    for record in line_tuples: # Each log file
+        current_lines = record[1] # Each line in the CSV - 0 would be log file path
+        for line in current_lines:
+            image, measurement = get_image_and_measurement(line, old_root, new_root)
+            all_images.append(image)
+            all_measurements.append(measurement)
+
+    return np.array(all_images), np.array(all_measurements)
+
+
 if __name__ == '__main__':
 
     # Set TensorFlow logging so it isn't so verbose.
@@ -139,22 +146,15 @@ if __name__ == '__main__':
     lines = []
     [lines.append([path, get_log_lines(path)]) for path in log_paths]
 
-    all_images = []
-    all_measurements = []
-
-    for record in lines:
-        images, measurements = get_images_and_measurements(record[0], record[1], config['old_image_root'],
-                                                           config['new_image_root'])
-        [all_images.append(image) for image in images]
-        [all_measurements.append(measurement) for measurement in measurements]
-
-    use_grid_search = config['use_grid_search']
+    images, measurements = get_all_images_and_measurements(lines)
 
     # Designate X and y data
-    X_train = np.ndarray(all_images)
-    y_train = np.array(all_measurements)
+    X_train = images
+    y_train = measurements
 
     pickle.dump(X_train, open('x_train_file.pkl','wb'))
+
+    use_grid_search = config['use_grid_search']
 
     if config["use_grid_search"] == 'True':
         # TODO: The grid search stuff is still buggy. Needs to be fixed before being used.
