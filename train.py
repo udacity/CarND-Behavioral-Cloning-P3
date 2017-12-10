@@ -200,8 +200,9 @@ if __name__ == '__main__':
             model.fit(X_train, y_train, nb_epoch=config['epochs'],
                   validation_split=0.2, shuffle=True, callbacks=[checkpointer, tensorboard])
         else:
+            checkpointer = ModelCheckpoint(config['checkpoint_directory'] + '/ckpt.h5', verbose=1, save_best_only=True)
             model.fit(X_train, y_train, nb_epoch=config['epochs'],
-                  validation_split=0.2, shuffle=True)
+                  validation_split=0.2, shuffle=True, callbacks=[checkpointer])
 
 
         if config['output_path'].endswith('.h5'):
