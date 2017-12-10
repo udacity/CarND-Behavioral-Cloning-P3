@@ -1,7 +1,7 @@
 {
   "use_grid_search": "False",
   "input_path": "/home/carnd/simulator_data/final_push",
-  "output_path": "/home/carnd/output/aws_model_1/model",
+  "output_path": "/home/carnd/output/aws_model_1/model/model.h5",
   "loss_function": "mse",
   "epochs": 40,
   "dropout": 0.25,
@@ -9,5 +9,6 @@
   "units": 1,
   "tensorboard_log_dir": "/home/carnd/output/aws_model_1/logs",
   "old_image_root": "/home/carnd/",
-  "new_image_root": "/home/carnd/"
+  "new_image_root": "/home/carnd/",
+  "checkpoint_directory": "/home/carnd/output/aws_model_1/checkpoints"
 }
