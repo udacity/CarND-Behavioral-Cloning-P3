@@ -194,8 +194,7 @@ if __name__ == '__main__':
         # Establish tensorboard
         if config["use_tensorboard"] == "True":
             tensorboard = TensorBoard(log_dir=config["tensorboard_log_dir"] + "/{}".format(time()), histogram_freq=1,
-                                      write_graph=True, write_grads=True,
-                                      write_images=True)
+                                      write_graph=True, write_images=True)
             model.fit(X_train, y_train, nb_epoch=config['epochs'],
                   validation_split=0.2, shuffle=True, callbacks=[tensorboard])
         else:
