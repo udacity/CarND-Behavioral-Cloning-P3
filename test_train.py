@@ -41,5 +41,9 @@ class SDCSimulationTrain(unittest.TestCase):
         reference_value = '30.19097'
         self.assertEqual(test_lines[1][1][1][6], reference_value)
 
+    def test_get_measurements_and_measurements(self):
+        pass
+
+
 if __name__ == '__main__':
     unittest.main()
