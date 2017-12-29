@@ -1,6 +1,7 @@
 import unittest
 import os
 from train import *
+import cv2
 
 
 class SDCSimulationTrain(unittest.TestCase):
@@ -43,6 +44,15 @@ class SDCSimulationTrain(unittest.TestCase):
 
     def test_get_measurements_and_measurements(self):
         pass
+
+    def test_augment_brightness_camera_images(self):
+        image_path = 'test/test_data/inside_in_grass_fast/IMG/center_2017_11_17_10_08_33_895.jpg'
+        image = cv2.imread(image_path)
+        brightened_image = augment_brightness_camera_images(image)
+        # Assert that the same shape was returned. Can do more intensive checks later.
+        self.assertEqual(image.shape[0], brightened_image.shape[0])
+        self.assertEqual(image.shape[1], brightened_image.shape[1])
+        self.assertEqual(image.shape[2], brightened_image.shape[2])
 
 
 if __name__ == '__main__':

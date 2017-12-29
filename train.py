@@ -10,6 +10,7 @@ from keras.wrappers.scikit_learn import KerasRegressor
 from sklearn.model_selection import GridSearchCV
 from keras.layers.convolutional import Convolution2D
 from keras.layers.pooling import MaxPooling2D
+from keras.optimizers import adam
 import json
 from keras.callbacks import TensorBoard
 from keras.callbacks import ModelCheckpoint
@@ -76,13 +77,13 @@ def get_image_and_measurement(line, old_root=None, new_root=None):
 
     if new_root and old_root:
         image_path = image_path.replace(old_root, new_root)
-
+    #logger.info('Image_Path: ' + image_path)
     image = cv2.imread(image_path)
     measurement = float(line[3])
 
     return image, measurement
 
-def create_model(units=1, loss_function='mse', optimizer='adam', input_shape=(160,320,3)):
+def create_model(units=1, loss_function='mse', optimizer='adam', input_shape=(160,320,3), gpus=1, learning_rate=0.001):
     """
     Constructs Keras model object
     :return: Compiled Keras model object
@@ -96,8 +97,16 @@ def create_model(units=1, loss_function='mse', optimizer='adam', input_shape=(16
     model.add(Flatten())
     model.add(Dense(units))
 
-    model.compile(loss=loss_function, optimizer=optimizer, metrics=['accuracy'])
+    # TODO: Fix signature so multiple optimizers can be accepted.
+    opt = adam(lr=learning_rate)
 
+    if gpus <= 1:
+        model.compile(loss=loss_function, optimizer=opt, metrics=['accuracy'])
+    else:
+        gpu_list = []
+        [gpu_list.append('gpu(%d)' % i) for i in range(gpus)]
+        model.compile(loss=loss_function, optimizer=opt, metrics=['accuracy'],
+                      context=gpu_list)
     return model
 
 def custom_get_params(self, **params):
@@ -131,6 +140,23 @@ def get_all_images_and_measurements(line_tuples, old_root=None, new_root=None):
 
     return np.array(all_images), np.array(all_measurements)
 
+def augment_brightness_camera_images(image):
+    """
+    Note: Cited from blog post https://chatbotslife.com/using-augmentation-to-mimic-human-driving-496b569760a9,
+    which was a recommended reading by my mentor. Function used to augment my dataset to
+    improve model performance.
+    :param image: Image file opened by OpenCV
+    :return:
+    """
+    image1 = cv2.cvtColor(image,cv2.COLOR_RGB2HSV)
+    image1 = np.array(image1, dtype = np.float64)
+    random_bright = .5+np.random.uniform()
+    image1[:,:,2] = image1[:,:,2]*random_bright
+    image1[:,:,2][image1[:,:,2]>255]  = 255
+    image1 = np.array(image1, dtype = np.uint8)
+    image1 = cv2.cvtColor(image1,cv2.COLOR_HSV2RGB)
+    return image1
+
 
 if __name__ == '__main__':
 
@@ -147,26 +173,27 @@ if __name__ == '__main__':
     lines = []
     [lines.append([path, get_log_lines(path)]) for path in log_paths]
 
-    images, measurements = get_all_images_and_measurements(lines)
+    images, measurements = get_all_images_and_measurements(lines, old_root=config['old_image_root'],
+                                                           new_root=config['new_image_root'])
 
     # Designate X and y data
     X_train = images
     y_train = measurements
 
-    model = create_model(config['units'])
+    model = create_model(config['units'], gpus=config['gpus'], learning_rate=config['learning_rate'])
+    ckpt_path = "/output/floyd_model_1_{epoch:02d}_{val_acc:.2f}.hdf5"
+    checkpointer = ModelCheckpoint(ckpt_path, verbose=1, save_best_only=True)
 
     # Establish tensorboard
     if config["use_tensorboard"] == "True":
         tensorboard = TensorBoard(log_dir=config["tensorboard_log_dir"] + "/{}".format(time()), histogram_freq=1,
-                                  write_graph=True, write_images=True)
-        checkpointer = ModelCheckpoint(config['checkpoint_directory'] + '/ckpt.h5', verbose=1, save_best_only=True)
-        model.fit(X_train, y_train, nb_epoch=config['epochs'],
-              validation_split=0.2, shuffle=True, callbacks=[checkpointer, tensorboard])
+                                  write_graph=True)
+        callbacks = [checkpointer, tensorboard]
     else:
-        checkpointer = ModelCheckpoint(config['checkpoint_directory'] + '/ckpt.h5', verbose=1, save_best_only=True)
-        model.fit(X_train, y_train, nb_epoch=config['epochs'],
-              validation_split=0.2, shuffle=True, callbacks=[checkpointer])
+        callbacks = [checkpointer]
 
+    model.fit(X_train, y_train, nb_epoch=config['epochs'], batch_size=config['batch_size'],
+              validation_split=0.2, shuffle=True, callbacks=callbacks)
 
     if config['output_path'].endswith('.h5'):
         model.save(config['output_path'])
