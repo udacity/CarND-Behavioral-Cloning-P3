@@ -17,6 +17,7 @@ from keras.callbacks import ModelCheckpoint
 from time import time
 import logging
 import pickle
+import copy
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -69,19 +70,27 @@ def get_log_lines(path):
 
 def get_image_and_measurement(line, old_root=None, new_root=None):
     """
-    Gets images and measurements from training images.
-    :param path: Input path for images.
-    :return:
+
+    :param line:
+    :param old_root:
+    :param new_root:
+    :param image_position: Image position within the file. Value can be 0 for center, 1 for left, or 2 for right.
+    :return: image array and measurement
     """
-    image_path = line[0]
+    center_image_path = line[0]
+    left_image_path = line[1]
+    right_image_path = line[2]
 
     if new_root and old_root:
-        image_path = image_path.replace(old_root, new_root)
-    #logger.info('Image_Path: ' + image_path)
-    image = cv2.imread(image_path)
+        center_image_path = center_image_path.replace(old_root, new_root)
+        left_image_path = left_image_path.replace(old_root, new_root)
+        right_image_path = right_image_path.replace(old_root, new_root)
+    center_image = cv2.imread(center_image_path)
+    left_image = cv2.imread(left_image_path)
+    right_image = cv2.imread(right_image_path)
     measurement = float(line[3])
 
-    return image, measurement
+    return center_image, left_image, right_image, measurement
 
 def create_model(units=1, loss_function='mse', optimizer='adam', input_shape=(160,320,3), gpus=1, learning_rate=0.001):
     """
@@ -128,17 +137,21 @@ def get_all_images_and_measurements(line_tuples, old_root=None, new_root=None):
     Log file, [lines of log file].
     :return: Images and measurements for all files.
     """
-    all_images = []
+    all_center_images = []
+    all_left_images = []
+    all_right_images = []
     all_measurements = []
 
     for record in line_tuples: # Each log file
         current_lines = record[1] # Each line in the CSV - 0 would be log file path
         for line in current_lines:
-            image, measurement = get_image_and_measurement(line, old_root, new_root)
-            all_images.append(image)
+            center_image, left_image, right_image, measurement = get_image_and_measurement(line, old_root, new_root)
+            all_center_images.append(center_image)
+            all_left_images.append(left_image)
+            all_right_images.append(right_image)
             all_measurements.append(measurement)
 
-    return np.array(all_images), np.array(all_measurements)
+    return np.array(all_center_images), np.array(all_left_images), np.array(all_right_images), np.array(all_measurements)
 
 def augment_brightness_camera_images(image):
     """
@@ -157,6 +170,45 @@ def augment_brightness_camera_images(image):
     image1 = cv2.cvtColor(image1,cv2.COLOR_HSV2RGB)
     return image1
 
+def adjust_side_images(measurement_value, adjustment_offset, side):
+    """
+    Implementation of usage of left and right images to simulate edge correction,
+    as suggested in blog post by Vivek Yadav, https://chatbotslife.com/using-augmentation-to-mimic-human-driving-496b569760a9,
+    as suggested reading by my mentor, Rahul. Function used to augment my dataset to improve
+    model performance.
+    :param measurement_value:
+    :param adjustment_offset:
+    :param side:
+    :return:
+    """
+    if side == 'left':
+        return measurement_value + adjustment_offset
+    elif side == 'right':
+        return measurement_value - adjustment_offset
+    elif side == 'center':
+        return measurement_value
+
+def shift_image_position(image, steering_angle, translation_range):
+    """
+    Note: Cited from blog post https://chatbotslife.com/using-augmentation-to-mimic-human-driving-496b569760a9,
+    which was a recommended reading by my mentor. Function used to augment my dataset to
+    improve model performance.
+    :param image:
+    :param steering_angle:
+    :param translation_range:
+    :return: translated_image, translated_steering_angle
+    """
+    translation_x = translation_range * np.random.uniform() - translation_range/2
+    translated_steering_angle = steering_angle + translation_x/translation_range*2*.2
+    translation_y = 40 * np.random.uniform() - 40/2
+    translation_m = np.float32([[1, 0, translation_x], [0, 1, translation_y]])
+    rows = image.shape[0]
+    cols = image.shape[1]
+    translated_image = cv2.warpAffine(image, translation_m, (cols, rows))
+
+    return translated_image, translated_steering_angle
+
+
 
 if __name__ == '__main__':
 
@@ -173,11 +225,12 @@ if __name__ == '__main__':
     lines = []
     [lines.append([path, get_log_lines(path)]) for path in log_paths]
 
-    images, measurements = get_all_images_and_measurements(lines, old_root=config['old_image_root'],
+    center_images, left_images, right_images, measurements = \
+        get_all_images_and_measurements(lines, old_root=config['old_image_root'],
                                                            new_root=config['new_image_root'])
 
     # Designate X and y data
-    X_train = images
+    X_train = center_images
     y_train = measurements
 
     model = create_model(config['units'], gpus=config['gpus'], learning_rate=config['learning_rate'])

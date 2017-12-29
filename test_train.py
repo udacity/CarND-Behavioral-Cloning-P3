@@ -54,6 +54,28 @@ class SDCSimulationTrain(unittest.TestCase):
         self.assertEqual(image.shape[1], brightened_image.shape[1])
         self.assertEqual(image.shape[2], brightened_image.shape[2])
 
+    def test_use_sides_for_recovery(self):
+        reference_value = 30.19097
+        adjustment = .25
+        left_value = reference_value + adjustment
+        left_test = adjust_side_images(reference_value, adjustment, 'left')
+        self.assertEqual(left_value, left_test)
+        right_value = reference_value - adjustment
+        right_test = adjust_side_images(reference_value, adjustment, 'right')
+        self.assertEqual(right_value, right_test)
+        self.assertEqual(reference_value, adjust_side_images(reference_value, adjustment, 'center'))
+
+    def test_shift_image_position(self):
+        image_path = 'test/test_data/inside_in_grass_fast/IMG/center_2017_11_17_10_08_33_895.jpg'
+        image = cv2.imread(image_path)
+        steering_angle = 30.67882
+        test_translation_range = 0.004
+        test_image, test_angle = shift_image_position(image, steering_angle, test_translation_range)
+        self.assertNotAlmostEqual(steering_angle, test_angle)
+        # Assert images of the same shape were returned
+        self.assertEqual(image.shape[0], test_image.shape[0])
+        self.assertEqual(image.shape[1], test_image.shape[1])
+        self.assertEqual(image.shape[2], test_image.shape[2])
 
 if __name__ == '__main__':
     unittest.main()
