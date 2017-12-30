@@ -77,5 +77,37 @@ class SDCSimulationTrain(unittest.TestCase):
         self.assertEqual(image.shape[1], test_image.shape[1])
         self.assertEqual(image.shape[2], test_image.shape[2])
 
+    def test_add_random_shadow(self):
+        image_path = 'test/test_data/inside_in_grass_fast/IMG/center_2017_11_17_10_08_33_895.jpg'
+        image = cv2.imread(image_path)
+        shadow_image = add_random_shadow(image)
+        # Assert images of the same shape were returned
+        self.assertEqual(image.shape[0], shadow_image.shape[0])
+        self.assertEqual(image.shape[1], shadow_image.shape[1])
+        self.assertEqual(image.shape[2], shadow_image.shape[2])
+
+    def test_flip_image(self):
+        image_path = 'test/test_data/inside_in_grass_fast/IMG/center_2017_11_17_10_08_33_895.jpg'
+        image = cv2.imread(image_path)
+        flipped_image = flip_image(image)
+        # Assert images of the same shape were returned
+        self.assertEqual(image.shape[0], flipped_image.shape[0])
+        self.assertEqual(image.shape[1], flipped_image.shape[1])
+        self.assertEqual(image.shape[2], flipped_image.shape[2])
+
+    def test_crop_image(self):
+        image_path = 'test/test_data/inside_in_grass_fast/IMG/center_2017_11_17_10_08_33_895.jpg'
+        image = cv2.imread(image_path)
+        horizon_divisor = 5
+        hood_pixels = 25
+        crop_height = 64
+        crop_width = 64
+        cropped_image = crop_image(image, horizon_divisor, hood_pixels, crop_height, crop_width)
+        # Assert returned image's shape
+        self.assertEqual(cropped_image.shape[0], crop_height)
+        self.assertEqual(cropped_image.shape[1], crop_width)
+        self.assertEqual(cropped_image.shape[2], 3)
+
+
 if __name__ == '__main__':
     unittest.main()

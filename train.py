@@ -18,6 +18,7 @@ from time import time
 import logging
 import pickle
 import copy
+import math
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -208,6 +209,69 @@ def shift_image_position(image, steering_angle, translation_range):
 
     return translated_image, translated_steering_angle
 
+def add_random_shadow(image):
+    """
+    Adding a random shadow mask to the image.
+    Note: Cited from blog post https://chatbotslife.com/using-augmentation-to-mimic-human-driving-496b569760a9,
+    which was a recommended reading by my mentor. Function used to augment my dataset to
+    improve model performance.
+    :param image: Image to add a shadow too.
+    :return: Image with a random shadow added.
+    """
+    top_y = 320 * np.random.uniform()
+    top_x = 0
+    bot_x = 160
+    bot_y = 320 * np.random.uniform()
+    image_hls = cv2.cvtColor(image, cv2.COLOR_RGB2HLS)
+    shadow_mask = 0 * image_hls[:,:,1]
+    X_m = np.mgrid[0:image.shape[0], 0:image.shape[1]][0]
+    Y_m = np.mgrid[0:image.shape[0], 0:image.shape[1]][1]
+
+    shadow_mask[((X_m - top_x) * (bot_y - top_y) - (bot_x - top_x) * (Y_m - top_y) >= 0)] = 1
+    if np.random.randint(2) == 1:
+        random_bright = .5
+        cond1 = shadow_mask == 1
+        cond0 = shadow_mask == 0
+        if np.random.randint(2) == 1:
+            image_hls[:,:,1][cond1] = image_hls[:,:,1][cond1]*random_bright
+        else:
+            image_hls[:,:,1][cond0] = image_hls[:,:,1][cond0]*random_bright
+
+    image = cv2.cvtColor(image_hls, cv2.COLOR_HLS2RGB)
+
+    return image
+
+
+def flip_image(image):
+    """
+    Flips image so it looks as though it was made going from the opposite direction.
+
+    Note: Implementation of usage of left and right images to simulate edge correction,
+    as suggested in blog post by Vivek Yadav, https://chatbotslife.com/using-augmentation-to-mimic-human-driving-496b569760a9,
+    as suggested reading by my mentor, Rahul. Function used to augment my dataset to improve
+    model performance.
+    :param image:
+    :return:
+    """
+    return cv2.flip(image, 1)
+
+def crop_image(image, horizon_divisor, hood_pixels, crop_height, crop_width):
+    """
+    Note: Cited and refactored from blog post https://chatbotslife.com/using-augmentation-to-mimic-human-driving-496b569760a9,
+    which was a recommended reading by my mentor. Function used to augment my dataset to
+    improve model performance.
+    :param image:
+    :param horizon_divisor:
+    :param hood_pixels:
+    :param crop_height:
+    :param crop_width:
+    :return:
+    """
+    shape = image.shape
+    image = image[math.floor(shape[0]/horizon_divisor):shape[0]-hood_pixels, 0:shape[1]]
+    image = cv2.resize(image, (crop_width, crop_height))
+
+    return image
 
 
 if __name__ == '__main__':
