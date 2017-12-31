@@ -98,14 +98,47 @@ def create_model(units=1, loss_function='mse', optimizer='adam', input_shape=(16
     Constructs Keras model object
     :return: Compiled Keras model object
     """
+    """
+    # ORIGINAL
     model = Sequential()
     model.add(Convolution2D(160, 3, 3, input_shape=input_shape))
     model.add(MaxPooling2D((2,2)))
     model.add(Dropout(0.2))
+
     model.add(Activation('relu'))
     model.add(Lambda(lambda x: (x / 255.0) - 0.5, input_shape=input_shape))
     model.add(Flatten())
     model.add(Dense(units))
+    """
+    model = Sequential()
+
+    # Find the color space
+    model.add(Convolution2D(3, (1, 1), input_shape=input_shape))
+
+    model.add(Convolution2D(32, (3, 3)))
+    model.add(Convolution2D(32, (3, 3)))
+    model.add(Activation('relu'))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(Dropout(0.5))
+
+    model.add(Convolution2D(64, (3, 3)))
+    model.add(Convolution2D(64, (3, 3)))
+    model.add(Activation('relu'))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(Dropout(0.5))
+
+    model.add(Convolution2D(128, (3, 3)))
+    model.add(Convolution2D(128, (3, 3)))
+    model.add(Activation('relu'))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(Dropout(0.5))
+
+    model.add(Activation('relu'))
+    model.add(Lambda(lambda x: (x / 255.0) - 0.5, input_shape=input_shape))
+    model.add(Flatten())
+    model.add(Dense(512))
+    model.add(Dense(64))
+    model.add(Dense(16))
 
     # TODO: Fix signature so multiple optimizers can be accepted.
     opt = adam(lr=learning_rate)
@@ -242,7 +275,7 @@ def add_random_shadow(image):
     return image
 
 
-def flip_image(image):
+def flip_image_and_measurement(image, measurement):
     """
     Flips image so it looks as though it was made going from the opposite direction.
 
@@ -253,7 +286,7 @@ def flip_image(image):
     :param image:
     :return:
     """
-    return cv2.flip(image, 1)
+    return cv2.flip(image, 1), measurement*-1
 
 def crop_image(image, horizon_divisor, hood_pixels, crop_height, crop_width):
     """
@@ -272,6 +305,126 @@ def crop_image(image, horizon_divisor, hood_pixels, crop_height, crop_width):
     image = cv2.resize(image, (crop_width, crop_height))
 
     return image
+
+def pick_random_vantage_point():
+    """
+    Pick left, center, or right at random.
+    :return:
+    """
+    random_integer = np.random.randint(3)
+    if random_integer == 0:
+        return 'left'
+    elif random_integer == 1:
+        return 'right'
+    else:
+        return 'center'
+
+
+def augment_image(image, position, measurement, shift_offset=0.004):
+    """
+
+    :param center_image:
+    :param left_image:
+    :param right_image:
+    :param measurement:
+    :return:
+    """
+    images = []
+    measurements = []
+
+    measurement = adjust_side_images(measurement, .25, position)
+
+    bright = augment_brightness_camera_images(image)
+    shadow = add_random_shadow(image)
+    flipped, flipped_mmt = flip_image_and_measurement(image, measurement)
+
+    images.append(image)
+    measurements.append(measurement)
+    images.append(bright)
+    measurements.append(measurement)
+    images.append(shadow)
+    measurements.append(measurement)
+    images.append(flipped)
+    measurements.append(flipped_mmt)
+
+
+    if position == 'center':
+        translated, shift_mmt = shift_image_position(image, measurement, shift_offset)
+        bright_shifted, bright_shift_mmt = shift_image_position(bright, measurement, shift_offset)
+        shadow_shifted, shadow_shift_mmt = shift_image_position(shadow, measurement, shift_offset)
+        flipped_shifted, flipped_shift_mmt = shift_image_position(flipped, flipped_mmt, shift_offset)
+
+        images.append(translated)
+        measurements.append(shift_mmt)
+
+        images.append(bright_shifted)
+        measurements.append(bright_shift_mmt)
+
+        images.append(shadow_shifted)
+        measurements.append(shadow_shift_mmt)
+
+        images.append(flipped_shifted)
+        measurements.append(flipped_shift_mmt)
+
+    # So, for non-center, will have 4, and if center, will have 8. So, 12 images per row.
+    return images, measurements
+
+def generate_training_data_by_batch(center_images, left_images, right_images, measurements,
+                                    height=64, channels=3, width=64, batch_size=32):
+    """
+
+    :param center_images:
+    :param left_images:
+    :param right_images:
+    :param measurements:
+    :param height:
+    :param channels:
+    :param width:
+    :param batch_size:
+    :return:
+    """
+    batch_images = np.zeros((batch_size, height, width, channels))
+    batch_measurements = np.zeros(batch_size)
+
+    # TODO: Figure out, do I shuffle beforehand? Also, do I... yeah, do I count the batch size as part of the images I've got?
+
+    for batch_index in range(0, len(measurements) // batch_size):
+        starting_index_for_batch = batch_index * batch_size
+        ending_index_for_batch = starting_index_for_batch + batch_size
+
+        batch_center = center_images[starting_index_for_batch:ending_index_for_batch]
+        batch_left = left_images[starting_index_for_batch:ending_index_for_batch]
+        batch_right = right_images[starting_index_for_batch:ending_index_for_batch]
+        batch_measurements = measurements[starting_index_for_batch:ending_index_for_batch]
+
+        final_batch_images = []
+        final_batch_measurements = []
+
+        # Augment the images
+        for i in range(len(batch_center)):
+            index_images = []
+            index_measurements = []
+
+            center_images, center_measurements = augment_image(batch_center[i], 'center', batch_measurements[i])
+            [index_images.append(img) for img in center_images]
+            [index_measurements.append(mmt) for mmt in center_measurements]
+
+            left_images, left_measurements = augment_image(batch_left[i], 'left', batch_measurements[i])
+            [index_images.append(img) for img in left_images]
+            [index_measurements.append(mmt) for mmt in left_measurements]
+
+            right_images, right_measurements = augment_image(batch_right[i], 'right', batch_measurements[i])
+            [index_images.append(img) for img in right_images]
+            [index_measurements.append(mmt) for mmt in right_measurements]
+
+            # Pick a random image out of each of the augmented images. Keeps the batch size in check.
+            random_index = np.random.randint(len(index_measurements))
+
+            final_batch_images.append(crop_image(index_images[random_index], horizon_divisor=5, hood_pixels=25,
+                                                 crop_height=64, crop_width=64))
+            final_batch_measurements.append(index_measurements[random_index])
+
+    yield batch_images, batch_measurements
 
 
 if __name__ == '__main__':

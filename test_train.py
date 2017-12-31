@@ -86,14 +86,16 @@ class SDCSimulationTrain(unittest.TestCase):
         self.assertEqual(image.shape[1], shadow_image.shape[1])
         self.assertEqual(image.shape[2], shadow_image.shape[2])
 
-    def test_flip_image(self):
+    def test_flip_image_and_measurement(self):
         image_path = 'test/test_data/inside_in_grass_fast/IMG/center_2017_11_17_10_08_33_895.jpg'
         image = cv2.imread(image_path)
-        flipped_image = flip_image(image)
+        measurement = 30.67882
+        flipped_image, flipped_measurement = flip_image_and_measurement(image, measurement)
         # Assert images of the same shape were returned
         self.assertEqual(image.shape[0], flipped_image.shape[0])
         self.assertEqual(image.shape[1], flipped_image.shape[1])
         self.assertEqual(image.shape[2], flipped_image.shape[2])
+        self.assertEqual(measurement*-1, flipped_measurement)
 
     def test_crop_image(self):
         image_path = 'test/test_data/inside_in_grass_fast/IMG/center_2017_11_17_10_08_33_895.jpg'
@@ -107,6 +109,17 @@ class SDCSimulationTrain(unittest.TestCase):
         self.assertEqual(cropped_image.shape[0], crop_height)
         self.assertEqual(cropped_image.shape[1], crop_width)
         self.assertEqual(cropped_image.shape[2], 3)
+
+    def test_pick_random_vantage_point(self):
+        # Line data goes in
+        viewpoint = pick_random_vantage_point()
+        # Hmmm. Just make sure it's not 'none', I guess.
+        self.assertIn(viewpoint, ['left', 'right', 'center'])
+
+    @unittest.skip
+    def test_generate_train_by_batch(self):
+        batch_size = 32
+        # TODO: Figure out how to test the generator
 
 
 if __name__ == '__main__':
