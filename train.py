@@ -6,19 +6,19 @@ from keras.layers import Flatten, Dense, Activation, Dropout, Lambda
 import sys
 import argparse
 import os
-from keras.wrappers.scikit_learn import KerasRegressor
-from sklearn.model_selection import GridSearchCV
 from keras.layers.convolutional import Convolution2D
 from keras.layers.pooling import MaxPooling2D
 from keras.optimizers import adam
+from keras.preprocessing.image import ImageDataGenerator
 import json
 from keras.callbacks import TensorBoard
 from keras.callbacks import ModelCheckpoint
 from time import time
 import logging
-import pickle
 import copy
 import math
+import random
+from sklearn.model_selection import train_test_split
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -62,7 +62,6 @@ def get_log_lines(path):
     :return: List of driving log records.
     """
     lines = []
-    #with open(path + '/driving_log.csv') as csvfile:
     with open(path) as csvfile:
         reader = csv.reader(csvfile)
         for line in reader:
@@ -319,8 +318,7 @@ def pick_random_vantage_point():
     else:
         return 'center'
 
-
-def augment_image(image, position, measurement, shift_offset=0.004):
+def full_augment_image(image, position, measurement, shift_offset=0.004):
     """
 
     :param center_image:
@@ -369,8 +367,69 @@ def augment_image(image, position, measurement, shift_offset=0.004):
     # So, for non-center, will have 4, and if center, will have 8. So, 12 images per row.
     return images, measurements
 
-def generate_training_data_by_batch(center_images, left_images, right_images, measurements,
-                                    height=64, channels=3, width=64, batch_size=32):
+def shuffle_data(images, measurements):
+    """
+
+    :param images:
+    :param measurements:
+    :return:
+    """
+    shuffled_images = []
+    shuffled_measurements = []
+
+    index_list = range(len(measurements))
+    shuffled_indexes = random.sample(index_list, len(index_list))
+
+    for i in shuffled_indexes:
+        shuffled_images.append(images[i])
+        shuffled_measurements.append(measurements[i])
+
+    return shuffled_images, shuffled_measurements
+
+
+def select_and_augment_image_for_image_generator(center_image, left_image, right_image, measurement):
+    """
+
+    :param center_image:
+    :param left_image:
+    :param right_image:
+    :param measurement:
+    :return:
+    """
+    # Select image position
+    image_position = np.random.randint(3)
+    if image_position == 0:
+        position = 'center'
+    elif image_position == 1:
+        position = 'left'
+    else:
+        position = 'right'
+
+    # Adjust measurement if necessary.
+    measurement = adjust_side_images(measurement, .25, position)
+
+    # Set image
+    if position == 'center':
+        image = center_image
+    else:
+        if position == 'left':
+            image = left_image
+        else:
+            image = right_image
+
+    # Select transformation type
+    transformation_selection = np.random.randint(3)
+
+    # Switch statement for augmentation selection
+    if transformation_selection == 0:
+        return image, measurement
+    elif transformation_selection == 1:
+        return augment_brightness_camera_images(image), measurement
+    else:
+        return add_random_shadow(image), measurement
+
+def generate_and_augment_training_data_by_batch(center_images, left_images, right_images, measurements,
+                                                height=64, channels=3, width=64, batch_size=32):
     """
 
     :param center_images:
@@ -411,15 +470,15 @@ def generate_training_data_by_batch(center_images, left_images, right_images, me
                 index_images = []
                 index_measurements = []
 
-                center_images, center_measurements = augment_image(batch_center[i], 'center', batch_measurements[i])
+                center_images, center_measurements = full_augment_image(batch_center[i], 'center', batch_measurements[i])
                 [index_images.append(img) for img in center_images]
                 [index_measurements.append(mmt) for mmt in center_measurements]
 
-                left_images, left_measurements = augment_image(batch_left[i], 'left', batch_measurements[i])
+                left_images, left_measurements = full_augment_image(batch_left[i], 'left', batch_measurements[i])
                 [index_images.append(img) for img in left_images]
                 [index_measurements.append(mmt) for mmt in left_measurements]
 
-                right_images, right_measurements = augment_image(batch_right[i], 'right', batch_measurements[i])
+                right_images, right_measurements = full_augment_image(batch_right[i], 'right', batch_measurements[i])
                 [index_images.append(img) for img in right_images]
                 [index_measurements.append(mmt) for mmt in right_measurements]
 
@@ -448,7 +507,6 @@ if __name__ == '__main__':
     lines = []
     [lines.append([path, get_log_lines(path)]) for path in log_paths]
 
-    logger.info("Getting all images and measurements..." + str(len(lines)))
     center_images, left_images, right_images, measurements = \
         get_all_images_and_measurements(lines, old_root=config['old_image_root'],
                                                            new_root=config['new_image_root'])
@@ -459,23 +517,37 @@ if __name__ == '__main__':
     right_images = [crop_image(img, horizon_divisor=5, hood_pixels=25,
                                                      crop_height=64, crop_width=64) for img in right_images]
 
-    # Designate validation
-    validation_index = int(len(measurements) * .2)
-    center_images_valid = center_images[-validation_index:]
-    left_images_valid = left_images[-validation_index:]
-    right_images_valid = right_images[-validation_index:]
-    measurements_valid = measurements[-validation_index:]
+    # Augment and select an individual vantage point.
+    selected_images = []
+    selected_measurements = []
 
-    center_images = center_images[:-validation_index]
-    left_images = left_images[:-validation_index]
-    right_images = right_images[:-validation_index]
-    measurements = measurements[:-validation_index]
-    logger.info("Validation set of length " + str(len(measurements_valid)))
-    logger.info("Training set of length " + str(len(measurements)))
+    for i in range(len(measurements)):
+        img, mmt = select_and_augment_image_for_image_generator(center_images[i],
+                                                                left_images[i],
+                                                                right_images[i],
+                                                                measurements[i])
+        selected_images.append(img)
+        selected_measurements.append(mmt)
+
+    logger.info("Selected images: " + str(len(selected_images)))
+    logger.info("Selected measurements: " + str(len(selected_measurements)))
+
+    # Shuffle the data once
+    images, measurements = shuffle_data(selected_images, selected_measurements)
+
+    # Train/Test Split
+    validation_index = int(len(measurements) * (1 - config['test_size']))
+    images_test = np.array(images[-validation_index:])
+    measurements_test = np.array(measurements[-validation_index:])
+    images_train = np.array(images[:-validation_index])
+    measurements_train = np.array(measurements[:-validation_index])
+    logger.info("Validation set of length " + str(len(measurements_test)))
+    logger.info("Training set of length " + str(len(measurements_train)))
 
     model = create_model(config['units'], gpus=config['gpus'], input_shape=(64, 64, 3),
                          learning_rate=config['learning_rate'])
-    ckpt_path = "/output/floyd_model_augment_2_{epoch:02d}_{val_acc:.2f}.hdf5"
+    #ckpt_path = "/output/floyd_model_augment_2_{epoch:02d}_{val_acc:.2f}.hdf5"
+    ckpt_path = config['checkpoint_path'] + "/augment_simple_{epoch:02d}_{val_acc:.2f}.hdf5"
     checkpointer = ModelCheckpoint(ckpt_path, verbose=1, save_best_only=True)
 
     # Establish tensorboard
@@ -489,12 +561,21 @@ if __name__ == '__main__':
     #model.fit(X_train, y_train, nb_epoch=config['epochs'], batch_size=config['batch_size'],
     #          validation_split=0.2, shuffle=True, callbacks=callbacks)
     logger.info("Training the model...")
-    train_gen = generate_training_data_by_batch(center_images, left_images, right_images, measurements,
-                                                        batch_size=config['batch_size'])
-    #valid_gen = generate_training_data_by_batch(center_images_valid, left_images_valid, right_images_valid,
-                                                #measurements_valid, batch_size=1)
-    model.fit_generator(train_gen, samples_per_epoch=(len(center_images) // config['batch_size']),
-                        nb_epoch=config['epochs']) #, validation_data=valid_gen, nb_val_samples=4)
+
+    train_datagen = ImageDataGenerator(
+        horizontal_flip=True
+    )
+    test_datagen = ImageDataGenerator()
+
+
+    train_generator = train_datagen.flow(images_train, measurements_train,
+                                         batch_size=config['batch_size'])
+
+    validation_generator = test_datagen.flow(images_test, measurements_test,
+                                             batch_size=config['batch_size'])
+
+    model.fit_generator(train_generator, samples_per_epoch=8, nb_epoch=config['epochs'],
+                        validation_data=validation_generator, nb_val_samples=2, callbacks=callbacks)
 
     if config['output_path'].endswith('.h5'):
         model.save(config['output_path'])
