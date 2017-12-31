@@ -113,22 +113,22 @@ def create_model(units=1, loss_function='mse', optimizer='adam', input_shape=(16
     model = Sequential()
 
     # Find the color space
-    model.add(Convolution2D(3, (1, 1), input_shape=input_shape))
+    model.add(Convolution2D(3, 1, 1, input_shape=input_shape))
 
-    model.add(Convolution2D(32, (3, 3)))
-    model.add(Convolution2D(32, (3, 3)))
+    model.add(Convolution2D(32, 3, 3))
+    model.add(Convolution2D(32, 3, 3))
     model.add(Activation('relu'))
     model.add(MaxPooling2D(pool_size=(2, 2)))
     model.add(Dropout(0.5))
 
-    model.add(Convolution2D(64, (3, 3)))
-    model.add(Convolution2D(64, (3, 3)))
+    model.add(Convolution2D(64, 3, 3))
+    model.add(Convolution2D(64, 3, 3))
     model.add(Activation('relu'))
     model.add(MaxPooling2D(pool_size=(2, 2)))
     model.add(Dropout(0.5))
 
-    model.add(Convolution2D(128, (3, 3)))
-    model.add(Convolution2D(128, (3, 3)))
+    model.add(Convolution2D(128, 3, 3))
+    model.add(Convolution2D(128, 3, 3))
     model.add(Activation('relu'))
     model.add(MaxPooling2D(pool_size=(2, 2)))
     model.add(Dropout(0.5))
@@ -136,9 +136,9 @@ def create_model(units=1, loss_function='mse', optimizer='adam', input_shape=(16
     model.add(Activation('relu'))
     model.add(Lambda(lambda x: (x / 255.0) - 0.5, input_shape=input_shape))
     model.add(Flatten())
-    model.add(Dense(512))
-    model.add(Dense(64))
-    model.add(Dense(16))
+    #model.add(Dense(512))
+    #model.add(Dense(64))
+    model.add(Dense(units))
 
     # TODO: Fix signature so multiple optimizers can be accepted.
     opt = adam(lr=learning_rate)
@@ -334,34 +334,34 @@ def augment_image(image, position, measurement, shift_offset=0.004):
 
     measurement = adjust_side_images(measurement, .25, position)
 
-    bright = augment_brightness_camera_images(image)
-    shadow = add_random_shadow(image)
+    #bright = augment_brightness_camera_images(image)
+    #shadow = add_random_shadow(image)
     flipped, flipped_mmt = flip_image_and_measurement(image, measurement)
 
     images.append(image)
     measurements.append(measurement)
-    images.append(bright)
-    measurements.append(measurement)
-    images.append(shadow)
-    measurements.append(measurement)
+    #images.append(bright)
+    #measurements.append(measurement)
+    #images.append(shadow)
+    #measurements.append(measurement)
     images.append(flipped)
     measurements.append(flipped_mmt)
 
 
     if position == 'center':
         translated, shift_mmt = shift_image_position(image, measurement, shift_offset)
-        bright_shifted, bright_shift_mmt = shift_image_position(bright, measurement, shift_offset)
-        shadow_shifted, shadow_shift_mmt = shift_image_position(shadow, measurement, shift_offset)
+        #bright_shifted, bright_shift_mmt = shift_image_position(bright, measurement, shift_offset)
+        #shadow_shifted, shadow_shift_mmt = shift_image_position(shadow, measurement, shift_offset)
         flipped_shifted, flipped_shift_mmt = shift_image_position(flipped, flipped_mmt, shift_offset)
 
         images.append(translated)
         measurements.append(shift_mmt)
 
-        images.append(bright_shifted)
-        measurements.append(bright_shift_mmt)
+        #images.append(bright_shifted)
+        #measurements.append(bright_shift_mmt)
 
-        images.append(shadow_shifted)
-        measurements.append(shadow_shift_mmt)
+        #images.append(shadow_shifted)
+        #measurements.append(shadow_shift_mmt)
 
         images.append(flipped_shifted)
         measurements.append(flipped_shift_mmt)
@@ -383,15 +383,18 @@ def generate_training_data_by_batch(center_images, left_images, right_images, me
     :param batch_size:
     :return:
     """
+    logger.info("In generate: All_left: " + str(len(left_images)))
     while 1:
         batch_images = np.zeros((batch_size, height, width, channels))
         batch_measurements = np.zeros(batch_size)
 
         # TODO: Figure out, do I shuffle beforehand? Also, do I... yeah, do I count the batch size as part of the images I've got?
-
-        for batch_index in range(0, len(measurements) // batch_size):
+        for batch_index in range(0, ((len(measurements) // batch_size) - 1)):
             starting_index_for_batch = batch_index * batch_size
             ending_index_for_batch = starting_index_for_batch + batch_size
+            logger.info("Batch_index: " + str(batch_index))
+            logger.info("Starting index: " + str(starting_index_for_batch))
+            logger.info("Ending index: " + str(ending_index_for_batch))
 
             batch_center = center_images[starting_index_for_batch:ending_index_for_batch]
             batch_left = left_images[starting_index_for_batch:ending_index_for_batch]
@@ -402,7 +405,9 @@ def generate_training_data_by_batch(center_images, left_images, right_images, me
             final_batch_measurements = []
 
             # Augment the images
-            for i in range(len(batch_center)):
+            logger.info("Batch_mmt: " + str(len(batch_measurements)))
+            logger.info("Left: " + str(len(batch_left)))
+            for i in range(len(batch_measurements)):
                 index_images = []
                 index_measurements = []
 
@@ -421,8 +426,7 @@ def generate_training_data_by_batch(center_images, left_images, right_images, me
                 # Pick a random image out of each of the augmented images. Keeps the batch size in check.
                 random_index = np.random.randint(len(index_measurements))
 
-                final_batch_images.append(crop_image(index_images[random_index], horizon_divisor=5, hood_pixels=25,
-                                                     crop_height=height, crop_width=width))
+                final_batch_images.append(index_images[random_index])
                 final_batch_measurements.append(index_measurements[random_index])
 
         yield batch_images, batch_measurements
@@ -439,27 +443,38 @@ if __name__ == '__main__':
 
     # Load data
     #lines = get_log_lines(config['input_path'])
+    logger.info("Getting log lines...")
     log_paths = get_file_list(config['input_path'])
     lines = []
     [lines.append([path, get_log_lines(path)]) for path in log_paths]
 
+    logger.info("Getting all images and measurements..." + str(len(lines)))
     center_images, left_images, right_images, measurements = \
         get_all_images_and_measurements(lines, old_root=config['old_image_root'],
                                                            new_root=config['new_image_root'])
+    center_images = [crop_image(img, horizon_divisor=5, hood_pixels=25,
+                                                     crop_height=64, crop_width=64) for img in center_images]
+    left_images = [crop_image(img, horizon_divisor=5, hood_pixels=25,
+                                                     crop_height=64, crop_width=64) for img in left_images]
+    right_images = [crop_image(img, horizon_divisor=5, hood_pixels=25,
+                                                     crop_height=64, crop_width=64) for img in right_images]
 
     # Designate validation
     validation_index = int(len(measurements) * .2)
-    center_images_valid = center_images[-validation_index]
-    left_images_valid = left_images[-validation_index]
-    right_images_valid = right_images[-validation_index]
-    measurements_valid = measurements[-validation_index]
+    center_images_valid = center_images[-validation_index:]
+    left_images_valid = left_images[-validation_index:]
+    right_images_valid = right_images[-validation_index:]
+    measurements_valid = measurements[-validation_index:]
 
     center_images = center_images[:-validation_index]
     left_images = left_images[:-validation_index]
     right_images = right_images[:-validation_index]
     measurements = measurements[:-validation_index]
+    logger.info("Validation set of length " + str(len(measurements_valid)))
+    logger.info("Training set of length " + str(len(measurements)))
 
-    model = create_model(config['units'], gpus=config['gpus'], learning_rate=config['learning_rate'])
+    model = create_model(config['units'], gpus=config['gpus'], input_shape=(64, 64, 3),
+                         learning_rate=config['learning_rate'])
     ckpt_path = "/output/floyd_model_augment_2_{epoch:02d}_{val_acc:.2f}.hdf5"
     checkpointer = ModelCheckpoint(ckpt_path, verbose=1, save_best_only=True)
 
@@ -473,17 +488,13 @@ if __name__ == '__main__':
 
     #model.fit(X_train, y_train, nb_epoch=config['epochs'], batch_size=config['batch_size'],
     #          validation_split=0.2, shuffle=True, callbacks=callbacks)
-
-    model.fit_generator(generate_training_data_by_batch(center_images, left_images, right_images, measurements,
-                                                        batch_size=config['batch_size']),
-                        steps_per_epoch=(len(center_images) // config['batch_size']), epochs=config['epochs'],
-                        validation_data=generate_training_data_by_batch(center_images_valid,
-                                                                                                   left_images_valid,
-                                                                                                   right_images_valid,
-                                                                                                   measurements_valid,
-                                                                                                   batch_size=1),
-                        shuffle=True, callbacks=callbacks)
-
+    logger.info("Training the model...")
+    train_gen = generate_training_data_by_batch(center_images, left_images, right_images, measurements,
+                                                        batch_size=config['batch_size'])
+    #valid_gen = generate_training_data_by_batch(center_images_valid, left_images_valid, right_images_valid,
+                                                #measurements_valid, batch_size=1)
+    model.fit_generator(train_gen, samples_per_epoch=(len(center_images) // config['batch_size']),
+                        nb_epoch=config['epochs']) #, validation_data=valid_gen, nb_val_samples=4)
 
     if config['output_path'].endswith('.h5'):
         model.save(config['output_path'])
