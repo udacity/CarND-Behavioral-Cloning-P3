@@ -18,10 +18,11 @@ import logging
 import copy
 import math
 import random
-from sklearn.model_selection import train_test_split
+from keras import backend as k
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 def parse_args(arguments):
     """
@@ -44,6 +45,7 @@ def load_config(config_name):
         configuration = json.load(config_file)
         return configuration
 
+
 def get_file_list(dir_path):
     """
     Get list of files
@@ -55,18 +57,20 @@ def get_file_list(dir_path):
         [file_list.append(os.path.join(root, file)) for file in files if file.endswith('.csv')]
     return file_list
 
+
 def get_log_lines(path):
     """
     Gets list of records from driving log.
     :param path: Input path for driving log.
     :return: List of driving log records.
     """
-    lines = []
+    log_lines = []
     with open(path) as csvfile:
         reader = csv.reader(csvfile)
         for line in reader:
-            lines.append(line)
-    return lines
+            log_lines.append(line)
+    return log_lines
+
 
 def get_image_and_measurement(line, old_root=None, new_root=None):
     """
@@ -74,8 +78,7 @@ def get_image_and_measurement(line, old_root=None, new_root=None):
     :param line:
     :param old_root:
     :param new_root:
-    :param image_position: Image position within the file. Value can be 0 for center, 1 for left, or 2 for right.
-    :return: image array and measurement
+    :return:
     """
     center_image_path = line[0]
     left_image_path = line[1]
@@ -92,7 +95,8 @@ def get_image_and_measurement(line, old_root=None, new_root=None):
 
     return center_image, left_image, right_image, measurement
 
-def create_model(units=1, loss_function='mse', optimizer='adam', input_shape=(160,320,3), gpus=1, learning_rate=0.001):
+
+def create_model(units=1, loss_function='mse', input_shape=(160, 320, 3), gpus=1, learning_rate=0.001):
     """
     Constructs Keras model object
     :return: Compiled Keras model object
@@ -109,54 +113,54 @@ def create_model(units=1, loss_function='mse', optimizer='adam', input_shape=(16
     model.add(Flatten())
     model.add(Dense(units))
     """
-    model = Sequential()
+    conv_model = Sequential()
 
     # Find the color space
-    model.add(Convolution2D(3, 1, 1, input_shape=input_shape))
+    conv_model.add(Convolution2D(3, 1, 1, input_shape=input_shape))
 
-    model.add(Convolution2D(32, 3, 3))
-    model.add(Convolution2D(32, 3, 3))
-    model.add(Activation('relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Dropout(0.5))
+    conv_model.add(Convolution2D(32, 3, 3))
+    conv_model.add(Convolution2D(32, 3, 3))
+    conv_model.add(Activation('relu'))
+    conv_model.add(MaxPooling2D(pool_size=(2, 2)))
+    conv_model.add(Dropout(0.5))
 
-    model.add(Convolution2D(64, 3, 3))
-    model.add(Convolution2D(64, 3, 3))
-    model.add(Activation('relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Dropout(0.5))
+    conv_model.add(Convolution2D(64, 3, 3))
+    conv_model.add(Convolution2D(64, 3, 3))
+    conv_model.add(Activation('relu'))
+    conv_model.add(MaxPooling2D(pool_size=(2, 2)))
+    conv_model.add(Dropout(0.5))
 
-    model.add(Convolution2D(128, 3, 3))
-    model.add(Convolution2D(128, 3, 3))
-    model.add(Activation('relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Dropout(0.5))
+    conv_model.add(Convolution2D(128, 3, 3))
+    conv_model.add(Convolution2D(128, 3, 3))
+    conv_model.add(Activation('relu'))
+    conv_model.add(MaxPooling2D(pool_size=(2, 2)))
+    conv_model.add(Dropout(0.5))
 
-    model.add(Activation('relu'))
-    model.add(Lambda(lambda x: (x / 255.0) - 0.5, input_shape=input_shape))
-    model.add(Flatten())
-    #model.add(Dense(512))
-    #model.add(Dense(64))
-    model.add(Dense(units))
+    conv_model.add(Activation('relu'))
+    conv_model.add(Lambda(lambda x: (x / 255.0) - 0.5, input_shape=input_shape))
+    conv_model.add(Flatten())
+    conv_model.add(Dense(512))
+    conv_model.add(Dense(64))
+    conv_model.add(Dense(16))
+    conv_model.add(Dense(units))
 
-    # TODO: Fix signature so multiple optimizers can be accepted.
     opt = adam(lr=learning_rate)
 
     if gpus <= 1:
-        model.compile(loss=loss_function, optimizer=opt, metrics=['accuracy'])
+        conv_model.compile(loss=loss_function, optimizer=opt, metrics=['accuracy'])
     else:
         gpu_list = []
         [gpu_list.append('gpu(%d)' % i) for i in range(gpus)]
-        model.compile(loss=loss_function, optimizer=opt, metrics=['accuracy'],
-                      context=gpu_list)
-    return model
+        conv_model.compile(loss=loss_function, optimizer=opt, metrics=['accuracy'],
+                           context=gpu_list)
+    return conv_model
 
-def custom_get_params(self, **params):
+
+def custom_get_params(self):
     """
     Function to patch issue in Keras
-    :param self:
-    :param params:
-    :return:
+    :param self: Sci-kit parameters.
+    :return: Deep copy of the parameters.
     """
     res = copy.deepcopy(self.sk_params)
     res.update({'build_fn': self.build_fn})
@@ -166,25 +170,30 @@ def custom_get_params(self, **params):
 def get_all_images_and_measurements(line_tuples, old_root=None, new_root=None):
     """
     Retrieves individual images and measurements from all log files.
-    :param line_tuples: Line tuples extracted from log files. Each record:
-    Log file, [lines of log file].
-    :return: Images and measurements for all files.
+    :param line_tuples:
+    :param old_root:
+    :param new_root:
+    :return:
     """
     all_center_images = []
     all_left_images = []
     all_right_images = []
     all_measurements = []
 
-    for record in line_tuples: # Each log file
-        current_lines = record[1] # Each line in the CSV - 0 would be log file path
+    for record in line_tuples:  # Each log file
+        current_lines = record[1]  # Each line in the CSV - 0 would be log file path
         for line in current_lines:
-            center_image, left_image, right_image, measurement = get_image_and_measurement(line, old_root, new_root)
+            center_image, left_image, right_image, measurement = get_image_and_measurement(line,
+                                                                                           old_root,
+                                                                                           new_root)
             all_center_images.append(center_image)
             all_left_images.append(left_image)
             all_right_images.append(right_image)
             all_measurements.append(measurement)
 
-    return np.array(all_center_images), np.array(all_left_images), np.array(all_right_images), np.array(all_measurements)
+    return np.array(all_center_images), np.array(all_left_images), \
+           np.array(all_right_images), np.array(all_measurements)
+
 
 def augment_brightness_camera_images(image):
     """
@@ -194,19 +203,21 @@ def augment_brightness_camera_images(image):
     :param image: Image file opened by OpenCV
     :return:
     """
-    image1 = cv2.cvtColor(image,cv2.COLOR_RGB2HSV)
-    image1 = np.array(image1, dtype = np.float64)
-    random_bright = .5+np.random.uniform()
-    image1[:,:,2] = image1[:,:,2]*random_bright
-    image1[:,:,2][image1[:,:,2]>255]  = 255
-    image1 = np.array(image1, dtype = np.uint8)
-    image1 = cv2.cvtColor(image1,cv2.COLOR_HSV2RGB)
+    image1 = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+    image1 = np.array(image1, dtype=np.float64)
+    random_bright = .5 + np.random.uniform()
+    image1[:, :, 2] = image1[:, :, 2] * random_bright
+    image1[:, :, 2][image1[:, :, 2] > 255] = 255
+    image1 = np.array(image1, dtype=np.uint8)
+    image1 = cv2.cvtColor(image1, cv2.COLOR_HSV2RGB)
     return image1
+
 
 def adjust_side_images(measurement_value, adjustment_offset, side):
     """
     Implementation of usage of left and right images to simulate edge correction,
-    as suggested in blog post by Vivek Yadav, https://chatbotslife.com/using-augmentation-to-mimic-human-driving-496b569760a9,
+    as suggested in blog post by Vivek Yadav,
+    https://chatbotslife.com/using-augmentation-to-mimic-human-driving-496b569760a9,
     as suggested reading by my mentor, Rahul. Function used to augment my dataset to improve
     model performance.
     :param measurement_value:
@@ -221,6 +232,7 @@ def adjust_side_images(measurement_value, adjustment_offset, side):
     elif side == 'center':
         return measurement_value
 
+
 def shift_image_position(image, steering_angle, translation_range):
     """
     Note: Cited from blog post https://chatbotslife.com/using-augmentation-to-mimic-human-driving-496b569760a9,
@@ -231,15 +243,16 @@ def shift_image_position(image, steering_angle, translation_range):
     :param translation_range:
     :return: translated_image, translated_steering_angle
     """
-    translation_x = translation_range * np.random.uniform() - translation_range/2
-    translated_steering_angle = steering_angle + translation_x/translation_range*2*.2
-    translation_y = 40 * np.random.uniform() - 40/2
+    translation_x = translation_range * np.random.uniform() - translation_range / 2
+    translated_steering_angle = steering_angle + translation_x / translation_range * 2 * .2
+    translation_y = 40 * np.random.uniform() - 40 / 2
     translation_m = np.float32([[1, 0, translation_x], [0, 1, translation_y]])
     rows = image.shape[0]
     cols = image.shape[1]
     translated_image = cv2.warpAffine(image, translation_m, (cols, rows))
 
     return translated_image, translated_steering_angle
+
 
 def add_random_shadow(image):
     """
@@ -255,19 +268,19 @@ def add_random_shadow(image):
     bot_x = 160
     bot_y = 320 * np.random.uniform()
     image_hls = cv2.cvtColor(image, cv2.COLOR_RGB2HLS)
-    shadow_mask = 0 * image_hls[:,:,1]
-    X_m = np.mgrid[0:image.shape[0], 0:image.shape[1]][0]
-    Y_m = np.mgrid[0:image.shape[0], 0:image.shape[1]][1]
+    shadow_mask = 0 * image_hls[:, :, 1]
+    x_m = np.mgrid[0:image.shape[0], 0:image.shape[1]][0]
+    y_m = np.mgrid[0:image.shape[0], 0:image.shape[1]][1]
 
-    shadow_mask[((X_m - top_x) * (bot_y - top_y) - (bot_x - top_x) * (Y_m - top_y) >= 0)] = 1
+    shadow_mask[((x_m - top_x) * (bot_y - top_y) - (bot_x - top_x) * (y_m - top_y) >= 0)] = 1
     if np.random.randint(2) == 1:
         random_bright = .5
         cond1 = shadow_mask == 1
         cond0 = shadow_mask == 0
         if np.random.randint(2) == 1:
-            image_hls[:,:,1][cond1] = image_hls[:,:,1][cond1]*random_bright
+            image_hls[:, :, 1][cond1] = image_hls[:, :, 1][cond1] * random_bright
         else:
-            image_hls[:,:,1][cond0] = image_hls[:,:,1][cond0]*random_bright
+            image_hls[:, :, 1][cond0] = image_hls[:, :, 1][cond0] * random_bright
 
     image = cv2.cvtColor(image_hls, cv2.COLOR_HLS2RGB)
 
@@ -279,17 +292,21 @@ def flip_image_and_measurement(image, measurement):
     Flips image so it looks as though it was made going from the opposite direction.
 
     Note: Implementation of usage of left and right images to simulate edge correction,
-    as suggested in blog post by Vivek Yadav, https://chatbotslife.com/using-augmentation-to-mimic-human-driving-496b569760a9,
+    as suggested in blog post by Vivek Yadav,
+    https://chatbotslife.com/using-augmentation-to-mimic-human-driving-496b569760a9,
     as suggested reading by my mentor, Rahul. Function used to augment my dataset to improve
     model performance.
     :param image:
+    :param measurement:
     :return:
     """
-    return cv2.flip(image, 1), measurement*-1
+    return cv2.flip(image, 1), measurement * -1
+
 
 def crop_image(image, horizon_divisor, hood_pixels, crop_height, crop_width):
     """
-    Note: Cited and refactored from blog post https://chatbotslife.com/using-augmentation-to-mimic-human-driving-496b569760a9,
+    Note: Cited and refactored from blog post
+    https://chatbotslife.com/using-augmentation-to-mimic-human-driving-496b569760a9,
     which was a recommended reading by my mentor. Function used to augment my dataset to
     improve model performance.
     :param image:
@@ -300,10 +317,11 @@ def crop_image(image, horizon_divisor, hood_pixels, crop_height, crop_width):
     :return:
     """
     shape = image.shape
-    image = image[math.floor(shape[0]/horizon_divisor):shape[0]-hood_pixels, 0:shape[1]]
+    image = image[math.floor(shape[0] / horizon_divisor):shape[0] - hood_pixels, 0:shape[1]]
     image = cv2.resize(image, (crop_width, crop_height))
 
     return image
+
 
 def pick_random_vantage_point():
     """
@@ -318,17 +336,18 @@ def pick_random_vantage_point():
     else:
         return 'center'
 
+
 def full_augment_image(image, position, measurement, shift_offset=0.004):
     """
 
-    :param center_image:
-    :param left_image:
-    :param right_image:
+    :param image:
+    :param position:
     :param measurement:
+    :param shift_offset:
     :return:
     """
-    images = []
-    measurements = []
+    aug_images = []
+    aug_measurements = []
 
     measurement = adjust_side_images(measurement, .25, position)
 
@@ -336,15 +355,14 @@ def full_augment_image(image, position, measurement, shift_offset=0.004):
     shadow = add_random_shadow(image)
     flipped, flipped_mmt = flip_image_and_measurement(image, measurement)
 
-    images.append(image)
-    measurements.append(measurement)
-    images.append(bright)
-    measurements.append(measurement)
-    images.append(shadow)
-    measurements.append(measurement)
-    images.append(flipped)
-    measurements.append(flipped_mmt)
-
+    aug_images.append(image)
+    aug_measurements.append(measurement)
+    aug_images.append(bright)
+    aug_measurements.append(measurement)
+    aug_images.append(shadow)
+    aug_measurements.append(measurement)
+    aug_images.append(flipped)
+    aug_measurements.append(flipped_mmt)
 
     if position == 'center':
         translated, shift_mmt = shift_image_position(image, measurement, shift_offset)
@@ -352,37 +370,38 @@ def full_augment_image(image, position, measurement, shift_offset=0.004):
         shadow_shifted, shadow_shift_mmt = shift_image_position(shadow, measurement, shift_offset)
         flipped_shifted, flipped_shift_mmt = shift_image_position(flipped, flipped_mmt, shift_offset)
 
-        images.append(translated)
-        measurements.append(shift_mmt)
+        aug_images.append(translated)
+        aug_measurements.append(shift_mmt)
 
-        images.append(bright_shifted)
-        measurements.append(bright_shift_mmt)
+        aug_images.append(bright_shifted)
+        aug_measurements.append(bright_shift_mmt)
 
-        images.append(shadow_shifted)
-        measurements.append(shadow_shift_mmt)
+        aug_images.append(shadow_shifted)
+        aug_measurements.append(shadow_shift_mmt)
 
-        images.append(flipped_shifted)
-        measurements.append(flipped_shift_mmt)
+        aug_images.append(flipped_shifted)
+        aug_measurements.append(flipped_shift_mmt)
 
     # So, for non-center, will have 4, and if center, will have 8. So, 12 images per row.
-    return images, measurements
+    return aug_images, aug_measurements
 
-def shuffle_data(images, measurements):
+
+def shuffle_data(shuffle_input_images, shuffle_input_measurements):
     """
 
-    :param images:
-    :param measurements:
-    :return:
+    :param shuffle_input_images:
+    :param shuffle_input_measurements:
+    :return: shuffled_images, shuffled_measurements
     """
     shuffled_images = []
     shuffled_measurements = []
 
-    index_list = range(len(measurements))
+    index_list = range(len(shuffle_input_measurements))
     shuffled_indexes = random.sample(index_list, len(index_list))
 
     for i in shuffled_indexes:
-        shuffled_images.append(images[i])
-        shuffled_measurements.append(measurements[i])
+        shuffled_images.append(shuffle_input_images[i])
+        shuffled_measurements.append(shuffle_input_measurements[i])
 
     return shuffled_images, shuffled_measurements
 
@@ -428,26 +447,29 @@ def select_and_augment_image_for_image_generator(center_image, left_image, right
     else:
         return add_random_shadow(image), measurement
 
-def generate_and_augment_training_data_by_batch(center_images, left_images, right_images, measurements,
+
+def generate_and_augment_training_data_by_batch(gen_center_images,
+                                                gen_left_images,
+                                                gen_right_images,
+                                                gen_measurements,
                                                 height=64, channels=3, width=64, batch_size=32):
     """
 
-    :param center_images:
-    :param left_images:
-    :param right_images:
-    :param measurements:
+    :param gen_center_images:
+    :param gen_left_images:
+    :param gen_right_images:
+    :param gen_measurements:
     :param height:
     :param channels:
     :param width:
     :param batch_size:
     :return:
     """
-    logger.info("In generate: All_left: " + str(len(left_images)))
+    logger.info("In generate: All_left: " + str(len(gen_left_images)))
     while 1:
         batch_images = np.zeros((batch_size, height, width, channels))
         batch_measurements = np.zeros(batch_size)
 
-        # TODO: Figure out, do I shuffle beforehand? Also, do I... yeah, do I count the batch size as part of the images I've got?
         for batch_index in range(0, ((len(measurements) // batch_size) - 1)):
             starting_index_for_batch = batch_index * batch_size
             ending_index_for_batch = starting_index_for_batch + batch_size
@@ -455,10 +477,10 @@ def generate_and_augment_training_data_by_batch(center_images, left_images, righ
             logger.info("Starting index: " + str(starting_index_for_batch))
             logger.info("Ending index: " + str(ending_index_for_batch))
 
-            batch_center = center_images[starting_index_for_batch:ending_index_for_batch]
-            batch_left = left_images[starting_index_for_batch:ending_index_for_batch]
-            batch_right = right_images[starting_index_for_batch:ending_index_for_batch]
-            batch_measurements = measurements[starting_index_for_batch:ending_index_for_batch]
+            batch_center = gen_center_images[starting_index_for_batch:ending_index_for_batch]
+            batch_left = gen_left_images[starting_index_for_batch:ending_index_for_batch]
+            batch_right = gen_right_images[starting_index_for_batch:ending_index_for_batch]
+            batch_measurements = gen_measurements[starting_index_for_batch:ending_index_for_batch]
 
             final_batch_images = []
             final_batch_measurements = []
@@ -470,17 +492,20 @@ def generate_and_augment_training_data_by_batch(center_images, left_images, righ
                 index_images = []
                 index_measurements = []
 
-                center_images, center_measurements = full_augment_image(batch_center[i], 'center', batch_measurements[i])
-                [index_images.append(img) for img in center_images]
-                [index_measurements.append(mmt) for mmt in center_measurements]
+                gen_center_images, gen_center_measurements = full_augment_image(batch_center[i], 'center',
+                                                                                batch_measurements[i])
+                [index_images.append(c_img) for c_img in gen_center_images]
+                [index_measurements.append(c_mmt) for c_mmt in gen_center_measurements]
 
-                left_images, left_measurements = full_augment_image(batch_left[i], 'left', batch_measurements[i])
-                [index_images.append(img) for img in left_images]
-                [index_measurements.append(mmt) for mmt in left_measurements]
+                gen_left_images, gen_left_measurements = full_augment_image(batch_left[i], 'left',
+                                                                            batch_measurements[i])
+                [index_images.append(l_img) for l_img in gen_left_images]
+                [index_measurements.append(l_mmt) for l_mmt in gen_left_measurements]
 
-                right_images, right_measurements = full_augment_image(batch_right[i], 'right', batch_measurements[i])
-                [index_images.append(img) for img in right_images]
-                [index_measurements.append(mmt) for mmt in right_measurements]
+                gen_right_images, gen_right_measurements = full_augment_image(batch_right[i], 'right',
+                                                                              batch_measurements[i])
+                [index_images.append(r_img) for r_img in gen_right_images]
+                [index_measurements.append(r_mmt) for r_mmt in gen_right_measurements]
 
                 # Pick a random image out of each of the augmented images. Keeps the batch size in check.
                 random_index = np.random.randint(len(index_measurements))
@@ -501,7 +526,7 @@ if __name__ == '__main__':
     config = load_config(args['config'])
 
     # Load data
-    #lines = get_log_lines(config['input_path'])
+    # lines = get_log_lines(config['input_path'])
     logger.info("Getting log lines...")
     log_paths = get_file_list(config['input_path'])
     lines = []
@@ -509,23 +534,23 @@ if __name__ == '__main__':
 
     center_images, left_images, right_images, measurements = \
         get_all_images_and_measurements(lines, old_root=config['old_image_root'],
-                                                           new_root=config['new_image_root'])
+                                        new_root=config['new_image_root'])
     center_images = [crop_image(img, horizon_divisor=5, hood_pixels=25,
-                                                     crop_height=64, crop_width=64) for img in center_images]
+                                crop_height=64, crop_width=64) for img in center_images]
     left_images = [crop_image(img, horizon_divisor=5, hood_pixels=25,
-                                                     crop_height=64, crop_width=64) for img in left_images]
+                              crop_height=64, crop_width=64) for img in left_images]
     right_images = [crop_image(img, horizon_divisor=5, hood_pixels=25,
-                                                     crop_height=64, crop_width=64) for img in right_images]
+                               crop_height=64, crop_width=64) for img in right_images]
 
     # Augment and select an individual vantage point.
     selected_images = []
     selected_measurements = []
 
-    for i in range(len(measurements)):
-        img, mmt = select_and_augment_image_for_image_generator(center_images[i],
-                                                                left_images[i],
-                                                                right_images[i],
-                                                                measurements[i])
+    for idx in range(len(measurements)):
+        img, mmt = select_and_augment_image_for_image_generator(center_images[idx],
+                                                                left_images[idx],
+                                                                right_images[idx],
+                                                                measurements[idx])
         selected_images.append(img)
         selected_measurements.append(mmt)
 
@@ -546,7 +571,6 @@ if __name__ == '__main__':
 
     model = create_model(config['units'], gpus=config['gpus'], input_shape=(64, 64, 3),
                          learning_rate=config['learning_rate'])
-    #ckpt_path = "/output/floyd_model_augment_2_{epoch:02d}_{val_acc:.2f}.hdf5"
     ckpt_path = config['checkpoint_path'] + "/augment_simple_{epoch:02d}_{val_acc:.2f}.hdf5"
     checkpointer = ModelCheckpoint(ckpt_path, verbose=1, save_best_only=True)
 
@@ -558,7 +582,7 @@ if __name__ == '__main__':
     else:
         callbacks = [checkpointer]
 
-    #model.fit(X_train, y_train, nb_epoch=config['epochs'], batch_size=config['batch_size'],
+    # model.fit(X_train, y_train, nb_epoch=config['epochs'], batch_size=config['batch_size'],
     #          validation_split=0.2, shuffle=True, callbacks=callbacks)
     logger.info("Training the model...")
 
@@ -566,7 +590,6 @@ if __name__ == '__main__':
         horizontal_flip=True
     )
     test_datagen = ImageDataGenerator()
-
 
     train_generator = train_datagen.flow(images_train, measurements_train,
                                          batch_size=config['batch_size'])
@@ -582,4 +605,5 @@ if __name__ == '__main__':
     else:
         model.save(config['output_path'] + '.h5')
 
+    k.clear_session()
     sys.exit(0)
