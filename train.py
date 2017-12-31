@@ -334,34 +334,34 @@ def augment_image(image, position, measurement, shift_offset=0.004):
 
     measurement = adjust_side_images(measurement, .25, position)
 
-    #bright = augment_brightness_camera_images(image)
-    #shadow = add_random_shadow(image)
+    bright = augment_brightness_camera_images(image)
+    shadow = add_random_shadow(image)
     flipped, flipped_mmt = flip_image_and_measurement(image, measurement)
 
     images.append(image)
     measurements.append(measurement)
-    #images.append(bright)
-    #measurements.append(measurement)
-    #images.append(shadow)
-    #measurements.append(measurement)
+    images.append(bright)
+    measurements.append(measurement)
+    images.append(shadow)
+    measurements.append(measurement)
     images.append(flipped)
     measurements.append(flipped_mmt)
 
 
     if position == 'center':
         translated, shift_mmt = shift_image_position(image, measurement, shift_offset)
-        #bright_shifted, bright_shift_mmt = shift_image_position(bright, measurement, shift_offset)
-        #shadow_shifted, shadow_shift_mmt = shift_image_position(shadow, measurement, shift_offset)
+        bright_shifted, bright_shift_mmt = shift_image_position(bright, measurement, shift_offset)
+        shadow_shifted, shadow_shift_mmt = shift_image_position(shadow, measurement, shift_offset)
         flipped_shifted, flipped_shift_mmt = shift_image_position(flipped, flipped_mmt, shift_offset)
 
         images.append(translated)
         measurements.append(shift_mmt)
 
-        #images.append(bright_shifted)
-        #measurements.append(bright_shift_mmt)
+        images.append(bright_shifted)
+        measurements.append(bright_shift_mmt)
 
-        #images.append(shadow_shifted)
-        #measurements.append(shadow_shift_mmt)
+        images.append(shadow_shifted)
+        measurements.append(shadow_shift_mmt)
 
         images.append(flipped_shifted)
         measurements.append(flipped_shift_mmt)
