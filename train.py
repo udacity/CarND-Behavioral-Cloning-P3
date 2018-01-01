@@ -19,6 +19,7 @@ import copy
 import math
 import random
 from keras import backend as k
+from sklearn.utils import shuffle
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -113,53 +114,10 @@ def get_path_replacement(path, new_root):
     return '/'.join(end_tokens)
 
 
-def create_model(units=1, loss_function='mse', input_shape=(160, 320, 3), gpus=1, learning_rate=0.001):
+def create_model(units=1, loss_function='mse', input_shape=(160, 320, 3), gpus=1, learning_rate=0.001, dropout=0.25):
     """
     Constructs Keras model object
     :return: Compiled Keras model object
-    """
-    """
-    # ORIGINAL
-    model = Sequential()
-    model.add(Convolution2D(160, 3, 3, input_shape=input_shape))
-    model.add(MaxPooling2D((2,2)))
-    model.add(Dropout(0.2))
-
-    model.add(Activation('relu'))
-    model.add(Lambda(lambda x: (x / 255.0) - 0.5, input_shape=input_shape))
-    model.add(Flatten())
-    model.add(Dense(units))
-    #   --------- BREAK HERE
-    conv_model = Sequential()
-    conv_model.add(Lambda(lambda x: (x / 255.0) - 0.5, input_shape=input_shape))
-    # Find the color space
-    conv_model.add(Convolution2D(3, 1, 1, input_shape=input_shape))
-
-    conv_model.add(Convolution2D(32, 3, 3))
-    conv_model.add(Convolution2D(32, 3, 3))
-    conv_model.add(Activation('relu'))
-    conv_model.add(MaxPooling2D(pool_size=(2, 2)))
-    conv_model.add(Dropout(0.5))
-
-    conv_model.add(Convolution2D(64, 3, 3))
-    conv_model.add(Convolution2D(64, 3, 3))
-    conv_model.add(Activation('relu'))
-    conv_model.add(MaxPooling2D(pool_size=(2, 2)))
-    conv_model.add(Dropout(0.5))
-
-    conv_model.add(Convolution2D(128, 3, 3))
-    conv_model.add(Convolution2D(128, 3, 3))
-    conv_model.add(Activation('relu'))
-    conv_model.add(MaxPooling2D(pool_size=(2, 2)))
-    conv_model.add(Dropout(0.5))
-
-    conv_model.add(Activation('relu'))
-
-    conv_model.add(Flatten())
-    conv_model.add(Dense(512))
-    conv_model.add(Dense(64))
-    conv_model.add(Dense(16))
-    conv_model.add(Dense(units))
     """
     # NVIDIA Example
     conv_model = Sequential()
@@ -171,7 +129,7 @@ def create_model(units=1, loss_function='mse', input_shape=(160, 320, 3), gpus=1
     conv_model.add(Convolution2D(48, 5, 5, subsample=(2, 2), activation='relu'))
     conv_model.add(Convolution2D(64, 3, 3, activation='relu'))
     conv_model.add(Convolution2D(64, 3, 3, activation='relu'))
-    conv_model.add(Dropout(0.25))
+    conv_model.add(Dropout(dropout))
     conv_model.add(Flatten())
     #conv_model.add(Dense(1164))
     conv_model.add(Dense(100))
@@ -441,7 +399,23 @@ def shuffle_data(shuffle_input_images, shuffle_input_measurements):
     return shuffled_images, shuffled_measurements
 
 
-def select_and_augment_image_for_image_generator(center_image, left_image, right_image, measurement):
+def shuffle_lines(shuffle_lines):
+    """
+
+    :param shuffle_lines:
+    :return: shuffled_lines
+    """
+    return_lines = []
+
+    index_list = range(len(shuffle_lines))
+    shuffled_indexes = random.sample(index_list, len(index_list))
+
+    for i in shuffled_indexes:
+        return_lines.append(shuffle_lines[i])
+
+    return return_lines
+
+def select_and_augment_image_for_image_generator(center_image, left_image, right_image, measurement, side_adjustment):
     """
 
     :param center_image:
@@ -460,7 +434,7 @@ def select_and_augment_image_for_image_generator(center_image, left_image, right
         position = 'right'
 
     # Adjust measurement if necessary.
-    measurement = adjust_side_images(measurement, .25, position)
+    measurement = adjust_side_images(measurement, side_adjustment, position)
 
     # Set image
     if position == 'center':
@@ -471,16 +445,7 @@ def select_and_augment_image_for_image_generator(center_image, left_image, right
         else:
             image = right_image
 
-    # Select transformation type
-    transformation_selection = np.random.randint(3)
-
-    # Switch statement for augmentation selection
-    if transformation_selection == 0:
-        return image, measurement
-    elif transformation_selection == 1:
-        return augment_brightness_camera_images(image), measurement
-    else:
-        return add_random_shadow(image), measurement
+    return image, measurement
 
 
 def generate_and_augment_training_data_by_batch(gen_center_images,
@@ -550,6 +515,51 @@ def generate_and_augment_training_data_by_batch(gen_center_images,
 
         yield batch_images, batch_measurements
 
+def generate_from_file(lines, old_root, new_root, side_adjustment, batch_size=32):
+    """
+
+    :param lines:
+    :param batch_size:
+    :return:
+    """
+    num_lines = len(lines)
+    while 1:
+        for offset in range(0, num_lines, batch_size):
+            batch_lines = lines[offset:offset+batch_size]
+
+            images = []
+            measurements = []
+
+            for batch_line in batch_lines:
+                center, left, right, measurement = get_image_and_measurement(batch_line,
+                                                                             old_root,
+                                                                             new_root)
+                images.append(center)
+                images.append(left)
+                images.append(right)
+
+                measurements.append(measurement)
+                measurements.append(measurement + side_adjustment)
+                measurements.append(measurement - side_adjustment)
+
+            # Add a flipped version for each image.
+                f_img, f_mmt = flip_image_and_measurement(center, measurement)
+                images.append(f_img)
+                measurements.append(f_mmt)
+
+                f_img, f_mmt = flip_image_and_measurement(left, (measurement + side_adjustment))
+                images.append(f_img)
+                measurements.append(f_mmt)
+
+                f_img, f_mmt = flip_image_and_measurement(right, (measurement - side_adjustment))
+                images.append(f_img)
+                measurements.append(f_mmt)
+
+            X = np.array(images)
+            y = np.array(measurements)
+
+            yield shuffle(X, y)
+
 
 if __name__ == '__main__':
 
@@ -565,48 +575,22 @@ if __name__ == '__main__':
     logger.info("Getting log lines...")
     log_paths = get_file_list(config['input_path'])
     lines = []
-    [lines.append([path, get_log_lines(path)]) for path in log_paths]
-
-    center_images, left_images, right_images, measurements = \
-        get_all_images_and_measurements(lines, old_root=config['old_image_root'],
-                                        new_root=config['new_image_root'])
-    """
-    center_images = [crop_image(img, horizon_divisor=5, hood_pixels=25,
-                                crop_height=64, crop_width=64) for img in center_images]
-    left_images = [crop_image(img, horizon_divisor=5, hood_pixels=25,
-                              crop_height=64, crop_width=64) for img in left_images]
-    right_images = [crop_image(img, horizon_divisor=5, hood_pixels=25,
-                               crop_height=64, crop_width=64) for img in right_images]
-    """
-
-    # Augment and select an individual vantage point.
-    selected_images = []
-    selected_measurements = []
-
-    for idx in range(len(measurements)):
-        img, mmt = select_and_augment_image_for_image_generator(center_images[idx],
-                                                                left_images[idx],
-                                                                right_images[idx],
-                                                                measurements[idx])
-        selected_images.append(img)
-        selected_measurements.append(mmt)
-
-    logger.info("Selected images: " + str(len(selected_images)))
-    logger.info("Selected measurements: " + str(len(selected_measurements)))
-
+    #[lines.append([path, get_log_lines(path)]) for path in log_paths]
+    for path in log_paths:
+        [lines.append(line) for line in get_log_lines(path)]
+    logger.info("Number of lines: " + str(len(lines)))
     # Shuffle the data once
-    images, measurements = shuffle_data(selected_images, selected_measurements)
-
+    lines = shuffle_lines(lines)
+    logger.info("Number of lines after shuffle: " + str(len(lines)))
     # Train/Test Split
-    validation_index = int(len(measurements) * config['test_size'])
-    images_test = np.array(images[-validation_index:])
-    measurements_test = np.array(measurements[-validation_index:])
-    images_train = np.array(images[:-validation_index])
-    measurements_train = np.array(measurements[:-validation_index])
-    logger.info("Validation set of length " + str(len(measurements_test)))
-    logger.info("Training set of length " + str(len(measurements_train)))
+    validation_index = int(len(lines) * config['test_size'])
+    lines_test = lines[-validation_index:]
+    lines_train = lines[:-validation_index]
+    logger.info("Validation set of length " + str(len(lines_test)))
+    logger.info("Training set of length " + str(len(lines_train)))
 
-    model = create_model(config['units'], gpus=config['gpus'], learning_rate=config['learning_rate'])
+    model = create_model(config['units'], gpus=config['gpus'], learning_rate=config['learning_rate'],
+                         dropout=config['dropout_percentage'])
     ckpt_path = config['checkpoint_path'] + "/augment_NVIDIA_{epoch:02d}_{val_acc:.2f}.hdf5"
     checkpointer = ModelCheckpoint(ckpt_path, verbose=1, save_best_only=True)
 
@@ -619,24 +603,18 @@ if __name__ == '__main__':
     else:
         callbacks = [checkpointer]
 
-    # model.fit(X_train, y_train, nb_epoch=config['epochs'], batch_size=config['batch_size'],
-    #          validation_split=0.2, shuffle=True, callbacks=callbacks)
     logger.info("Training the model...")
 
-    train_datagen = ImageDataGenerator(
-        horizontal_flip=True
-    )
-    test_datagen = ImageDataGenerator()
+    train_generator = generate_from_file(lines_train, config['old_image_root'],
+                                         config['new_image_root'],
+                                         config['side_adjustment'], config['batch_size'])
 
-    train_generator = train_datagen.flow(images_train, measurements_train,
-                                         batch_size=config['batch_size'])
+    validation_generator = generate_from_file(lines_test, config['old_image_root'],
+                                         config['new_image_root'],
+                                         config['side_adjustment'], config['batch_size'])
 
-    validation_generator = test_datagen.flow(images_test, measurements_test,
-                                             batch_size=config['batch_size'])
-    samples_per_epoch = len(measurements_train) // config['batch_size']
-    v_samples_per_epoch = len(measurements_test) // config['batch_size']
-    model.fit_generator(train_generator, samples_per_epoch=samples_per_epoch, nb_epoch=config['epochs'],
-                        validation_data=validation_generator, nb_val_samples=v_samples_per_epoch, callbacks=callbacks)
+    model.fit_generator(train_generator, samples_per_epoch=len(lines_train), nb_epoch=config['epochs'],
+                        validation_data=validation_generator, nb_val_samples=len(lines_test), callbacks=callbacks)
 
     if config['output_path'].endswith('.h5'):
         model.save(config['output_path'])
