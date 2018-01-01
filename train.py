@@ -2,7 +2,7 @@ import csv
 import cv2
 import numpy as np
 from keras.models import Sequential
-from keras.layers import Flatten, Dense, Activation, Dropout, Lambda
+from keras.layers import Flatten, Dense, Activation, Dropout, Lambda, Cropping2D
 import sys
 import argparse
 import os
@@ -33,6 +33,7 @@ def parse_args(arguments):
     parser = argparse.ArgumentParser(description="Trains a behavioral cloning model from a given training file set.")
     parser.add_argument('-c', '--configuration', help="File path configuration file", required=True,
                         dest='config')
+    parser.add_argument('-l', '--logdir', help="Tensorboard log directory", dest='log_dir')
 
     return vars(parser.parse_args(arguments))
 
@@ -85,15 +86,31 @@ def get_image_and_measurement(line, old_root=None, new_root=None):
     right_image_path = line[2]
 
     if new_root and old_root:
-        center_image_path = center_image_path.replace(old_root, new_root)
-        left_image_path = left_image_path.replace(old_root, new_root)
-        right_image_path = right_image_path.replace(old_root, new_root)
+        #center_image_path = center_image_path.replace(old_root, new_root)
+        #left_image_path = left_image_path.replace(old_root, new_root)
+        #right_image_path = right_image_path.replace(old_root, new_root)
+        center_image_path = get_path_replacement(center_image_path, new_root)
+        left_image_path = get_path_replacement(left_image_path, new_root)
+        right_image_path = get_path_replacement(right_image_path, new_root)
     center_image = cv2.imread(center_image_path)
     left_image = cv2.imread(left_image_path)
     right_image = cv2.imread(right_image_path)
     measurement = float(line[3])
 
     return center_image, left_image, right_image, measurement
+
+def get_path_replacement(path, new_root):
+    """
+
+    :param path:
+    :param old_root:
+    :param new_root:
+    :return:
+    """
+    file_tokens = path.split('/')
+    end_tokens = file_tokens[-3:]
+    end_tokens.insert(0, new_root)
+    return '/'.join(end_tokens)
 
 
 def create_model(units=1, loss_function='mse', input_shape=(160, 320, 3), gpus=1, learning_rate=0.001):
@@ -112,9 +129,9 @@ def create_model(units=1, loss_function='mse', input_shape=(160, 320, 3), gpus=1
     model.add(Lambda(lambda x: (x / 255.0) - 0.5, input_shape=input_shape))
     model.add(Flatten())
     model.add(Dense(units))
-    """
+    #   --------- BREAK HERE
     conv_model = Sequential()
-
+    conv_model.add(Lambda(lambda x: (x / 255.0) - 0.5, input_shape=input_shape))
     # Find the color space
     conv_model.add(Convolution2D(3, 1, 1, input_shape=input_shape))
 
@@ -137,11 +154,29 @@ def create_model(units=1, loss_function='mse', input_shape=(160, 320, 3), gpus=1
     conv_model.add(Dropout(0.5))
 
     conv_model.add(Activation('relu'))
-    conv_model.add(Lambda(lambda x: (x / 255.0) - 0.5, input_shape=input_shape))
+
     conv_model.add(Flatten())
     conv_model.add(Dense(512))
     conv_model.add(Dense(64))
     conv_model.add(Dense(16))
+    conv_model.add(Dense(units))
+    """
+    # NVIDIA Example
+    conv_model = Sequential()
+    conv_model.add(Lambda(lambda x: (x / 255.0) - 0.5, input_shape=input_shape))
+    conv_model.add(Cropping2D(cropping=((70,25),(0,0))))
+    #conv_model.add(Convolution2D(3, 1, 1, input_shape=input_shape))
+    conv_model.add(Convolution2D(24, 5, 5, subsample=(2, 2), activation='relu'))
+    conv_model.add(Convolution2D(36, 5, 5, subsample=(2, 2), activation='relu'))
+    conv_model.add(Convolution2D(48, 5, 5, subsample=(2, 2), activation='relu'))
+    conv_model.add(Convolution2D(64, 3, 3, activation='relu'))
+    conv_model.add(Convolution2D(64, 3, 3, activation='relu'))
+    conv_model.add(Dropout(0.25))
+    conv_model.add(Flatten())
+    #conv_model.add(Dense(1164))
+    conv_model.add(Dense(100))
+    conv_model.add(Dense(50))
+    conv_model.add(Dense(10))
     conv_model.add(Dense(units))
 
     opt = adam(lr=learning_rate)
@@ -535,12 +570,14 @@ if __name__ == '__main__':
     center_images, left_images, right_images, measurements = \
         get_all_images_and_measurements(lines, old_root=config['old_image_root'],
                                         new_root=config['new_image_root'])
+    """
     center_images = [crop_image(img, horizon_divisor=5, hood_pixels=25,
                                 crop_height=64, crop_width=64) for img in center_images]
     left_images = [crop_image(img, horizon_divisor=5, hood_pixels=25,
                               crop_height=64, crop_width=64) for img in left_images]
     right_images = [crop_image(img, horizon_divisor=5, hood_pixels=25,
                                crop_height=64, crop_width=64) for img in right_images]
+    """
 
     # Augment and select an individual vantage point.
     selected_images = []
@@ -561,7 +598,7 @@ if __name__ == '__main__':
     images, measurements = shuffle_data(selected_images, selected_measurements)
 
     # Train/Test Split
-    validation_index = int(len(measurements) * (1 - config['test_size']))
+    validation_index = int(len(measurements) * config['test_size'])
     images_test = np.array(images[-validation_index:])
     measurements_test = np.array(measurements[-validation_index:])
     images_train = np.array(images[:-validation_index])
@@ -569,14 +606,14 @@ if __name__ == '__main__':
     logger.info("Validation set of length " + str(len(measurements_test)))
     logger.info("Training set of length " + str(len(measurements_train)))
 
-    model = create_model(config['units'], gpus=config['gpus'], input_shape=(64, 64, 3),
-                         learning_rate=config['learning_rate'])
-    ckpt_path = config['checkpoint_path'] + "/augment_simple_{epoch:02d}_{val_acc:.2f}.hdf5"
+    model = create_model(config['units'], gpus=config['gpus'], learning_rate=config['learning_rate'])
+    ckpt_path = config['checkpoint_path'] + "/augment_NVIDIA_{epoch:02d}_{val_acc:.2f}.hdf5"
     checkpointer = ModelCheckpoint(ckpt_path, verbose=1, save_best_only=True)
 
     # Establish tensorboard
     if config["use_tensorboard"] == "True":
-        tensorboard = TensorBoard(log_dir=config["tensorboard_log_dir"] + "/{}".format(time()), histogram_freq=1,
+        tensorboard = TensorBoard(log_dir=args['log_dir'], histogram_freq=1,
+        #tensorboard = TensorBoard(log_dir=config['tensorboard_log_dir'], histogram_freq=1,
                                   write_graph=True)
         callbacks = [checkpointer, tensorboard]
     else:
@@ -596,9 +633,10 @@ if __name__ == '__main__':
 
     validation_generator = test_datagen.flow(images_test, measurements_test,
                                              batch_size=config['batch_size'])
-
-    model.fit_generator(train_generator, samples_per_epoch=8, nb_epoch=config['epochs'],
-                        validation_data=validation_generator, nb_val_samples=2, callbacks=callbacks)
+    samples_per_epoch = len(measurements_train) // config['batch_size']
+    v_samples_per_epoch = len(measurements_test) // config['batch_size']
+    model.fit_generator(train_generator, samples_per_epoch=samples_per_epoch, nb_epoch=config['epochs'],
+                        validation_data=validation_generator, nb_val_samples=v_samples_per_epoch, callbacks=callbacks)
 
     if config['output_path'].endswith('.h5'):
         model.save(config['output_path'])
