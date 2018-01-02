@@ -1,0 +1,18 @@
+{
+  "input_path": "/simulator_data",
+  "output_path": "/output/model.h5",
+  "loss_function": "mse",
+  "epochs": 40,
+  "use_tensorboard": "True",
+  "units": 1,
+  "tensorboard_log_dir": "/output/floyd_rerun_orig_data",
+  "old_image_root": "/home/carnd/simulator_data/final_push/",
+  "new_image_root": "/simulator_data/",
+  "checkpoint_path": "/output",
+  "gpus": 4,
+  "batch_size": 128,
+  "learning_rate": 0.00005,
+  "test_size": 0.2,
+  "dropout_percentage": 0.3,
+  "side_adjustment": 0.35
+}

@@ -1,0 +1,18 @@
+{
+  "input_path": "/Users/saracollins/Desktop/simulator_data/lite",
+  "output_path": "/Users/saracollins/Dropbox/Udacity/BC_Local/local_run_8/model.h5",
+  "loss_function": "mse",
+  "epochs": 40,
+  "use_tensorboard": "True",
+  "units": 1,
+  "tensorboard_log_dir": "/Users/saracollins/Dropbox/Udacity/BC_Local/tb_logs/local_run_8",
+  "old_image_root": "/home/carnd/simulator_data/final_push/",
+  "new_image_root": "/Users/saracollins/Desktop/simulator_data/lite",
+  "checkpoint_path": "/Users/saracollins/Dropbox/Udacity/BC_Local/local_run_8",
+  "gpus": 1,
+  "batch_size": 64,
+  "learning_rate": 0.00005,
+  "test_size": 0.2,
+  "dropout_percentage": 0.3,
+  "side_adjustment": 0.35
+}

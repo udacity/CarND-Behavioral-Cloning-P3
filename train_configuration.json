@@ -1,0 +1,13 @@
+{
+  "input_path": "/simulator_data",
+  "output_path": "out/floyd_model_1/model/model.h5",
+  "loss_function": "mse",
+  "epochs": 40,
+  "dropout": 0.25,
+  "use_tensorboard": "True",
+  "units": 1,
+  "tensorboard_log_dir": "out/floyd_model_1/logs",
+  "old_image_root": "/home/carnd/",
+  "new_image_root": "/home/carnd/",
+  "checkpoint_directory": "out/floyd_model_1/checkpoints"
+}
