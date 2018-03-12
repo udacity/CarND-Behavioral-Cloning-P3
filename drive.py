@@ -12,9 +12,11 @@ from PIL import Image
 from flask import Flask
 from io import BytesIO
 
-from keras.models import load_model
+from keras.models import load_model, model_from_json
 import h5py
 from keras import __version__ as keras_version
+
+from model import LeNet
 
 sio = socketio.Server()
 app = Flask(__name__)
@@ -119,7 +121,9 @@ if __name__ == '__main__':
         print('You are using Keras version ', keras_version,
               ', but the model was built using ', model_version)
 
-    model = load_model(args.model)
+    # model = load_model(args.model)
+    model = LeNet((160, 320, 3))
+    model.load_weights('model_weights.h5')
 
     if args.image_folder != '':
         print("Creating image folder at {}".format(args.image_folder))
