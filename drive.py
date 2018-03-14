@@ -16,7 +16,8 @@ from keras.models import load_model, model_from_json
 import h5py
 from keras import __version__ as keras_version
 
-from model import LeNet
+from model import LeNet, nvidia
+import cv2
 
 sio = socketio.Server()
 app = Flask(__name__)
@@ -63,6 +64,7 @@ def telemetry(sid, data):
         imgString = data["image"]
         image = Image.open(BytesIO(base64.b64decode(imgString)))
         image_array = np.asarray(image)
+        image_array = cv2.resize(image_array, (160, 80))
         steering_angle = float(model.predict(image_array[None, :, :, :], batch_size=1))
 
         throttle = controller.update(float(speed))
@@ -122,8 +124,13 @@ if __name__ == '__main__':
               ', but the model was built using ', model_version)
 
     # model = load_model(args.model)
-    model = LeNet((160, 320, 3))
-    model.load_weights('model_weights.h5')
+    # model = LeNet(
+    model = nvidia(
+        (80, 160, 3), 
+        137.28933365733027, 
+        48.18294122773907
+    )
+    model.load_weights('params/model_weights.h5')
 
     if args.image_folder != '':
         print("Creating image folder at {}".format(args.image_folder))
