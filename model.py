@@ -1,85 +1,61 @@
 from keras.models import Sequential
 from keras.layers import Flatten, Dense, Conv2D, MaxPooling2D, BatchNormalization, Cropping2D, Lambda, Activation, Dropout
+from keras.initializers import glorot_normal
 
-def LeNet(input_shape, mu, sigma, dropout=1.0):
+def nvidia():
   model = Sequential()
-  model.add(Lambda(lambda x: (x - mu)/sigma, input_shape=input_shape)) # preprocess, normalization
-  model.add(Cropping2D(cropping=((75,25), (0,0))))
+  model.add(Lambda(lambda x: x/255.0 - 0.5, input_shape=(160,320,3)))
+  model.add(Cropping2D(cropping=((70,25), (0,0))))
   
-  # layer 1
-  model.add(Conv2D(6, 5, strides=1, padding='same'))
+  model.add(Conv2D(
+    24, 5, strides=1, padding='valid', 
+    kernel_initializer=glorot_normal(seed=1), bias_initializer='zeros'
+  ))
   model.add(BatchNormalization())
   model.add(Activation('relu'))
-  model.add(MaxPooling2D(pool_size=2))
-  model.add(Dropout(dropout, seed=1))
   
-  # layer 2
-  model.add(Conv2D(16, 5, strides=1, padding='same'))
+  model.add(Conv2D(
+    36, 5, strides=1, padding='valid',
+    kernel_initializer=glorot_normal(seed=1), bias_initializer='zeros'
+  ))
   model.add(BatchNormalization())
   model.add(Activation('relu'))
-  model.add(MaxPooling2D(pool_size=2))
-  model.add(Dropout(dropout, seed=1))
   
-  # layer 3
-  model.add(Conv2D(32, 5, strides=1, padding='same'))
+  model.add(Conv2D(
+    48, 5, strides=1, padding='valid',
+    kernel_initializer=glorot_normal(seed=1), bias_initializer='zeros'
+  ))
   model.add(BatchNormalization())
   model.add(Activation('relu'))
-  model.add(MaxPooling2D(pool_size=2))
-  model.add(Dropout(dropout, seed=1))
+  
+  model.add(Conv2D(
+    64, 3, padding='valid',
+    kernel_initializer=glorot_normal(seed=1), bias_initializer='zeros'
+  ))
+  model.add(BatchNormalization())
+  model.add(Activation('relu'))
+  
+  model.add(Conv2D(
+    64, 3, padding='valid',
+    kernel_initializer=glorot_normal(seed=1), bias_initializer='zeros'
+  ))
+  model.add(BatchNormalization())
+  model.add(Activation('relu'))
   
   model.add(Flatten())
 
-  model.add(Dense(200, activation='relu'))
-  model.add(Dropout(dropout, seed=1))
-  
-  model.add(Dense(120, activation='relu'))
-  model.add(Dropout(dropout, seed=1))
-  
-  model.add(Dense(84, activation='relu'))
-  model.add(Dropout(dropout, seed=1))
-  
-  model.add(Dense(1))
-  
-  return model
-
-def nvidia(input_shape, mu, sigma, dropout=1.0):
-  model = Sequential()
-  model.add(Lambda(lambda x: (x - mu)/sigma, input_shape=input_shape)) # preprocess, normalization
-  model.add(Cropping2D(cropping=((35,12), (0,0))))
-  
-  model.add(Conv2D(24, 5, strides=1, padding='valid'))
+  model.add(Dense(100, kernel_initializer=glorot_normal(seed=1), bias_initializer='zeros'))
   model.add(BatchNormalization())
   model.add(Activation('relu'))
-  model.add(Dropout(dropout))
   
-  model.add(Conv2D(36, 5, strides=1, padding='valid'))
+  model.add(Dense(50, kernel_initializer=glorot_normal(seed=1), bias_initializer='zeros'))
   model.add(BatchNormalization())
   model.add(Activation('relu'))
-  model.add(Dropout(dropout))
   
-  model.add(Conv2D(48, 5, strides=1, padding='valid'))
+  model.add(Dense(10, kernel_initializer=glorot_normal(seed=1), bias_initializer='zeros'))
   model.add(BatchNormalization())
   model.add(Activation('relu'))
-  model.add(Dropout(dropout))
   
-  model.add(Conv2D(64, 3, padding='valid'))
-  model.add(BatchNormalization())
-  model.add(Activation('relu'))
-  model.add(Dropout(dropout))
-  
-  model.add(Conv2D(64, 3, padding='valid'))
-  model.add(BatchNormalization())
-  model.add(Activation('relu'))
-  model.add(Dropout(dropout))
-  
-  model.add(Flatten())
-
-  model.add(Dense(100, activation='relu'))
-  model.add(Dropout(dropout))
-  model.add(Dense(50, activation='relu'))
-  model.add(Dropout(dropout))
-  model.add(Dense(10, activation='relu'))  
-  model.add(Dropout(dropout))
-  model.add(Dense(1))
+  model.add(Dense(1, kernel_initializer=glorot_normal(seed=1), bias_initializer='zeros'))
   
   return model
