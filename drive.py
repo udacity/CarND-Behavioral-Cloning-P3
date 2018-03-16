@@ -16,6 +16,8 @@ from keras.models import load_model
 import h5py
 from keras import __version__ as keras_version
 
+from model import nvidia
+
 sio = socketio.Server()
 app = Flask(__name__)
 model = None
@@ -120,6 +122,8 @@ if __name__ == '__main__':
               ', but the model was built using ', model_version)
 
     model = load_model(args.model)
+    # model = nvidia()
+    # model.load_weights(args.model)
 
     if args.image_folder != '':
         print("Creating image folder at {}".format(args.image_folder))
