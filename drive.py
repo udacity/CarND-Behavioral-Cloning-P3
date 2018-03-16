@@ -12,12 +12,11 @@ from PIL import Image
 from flask import Flask
 from io import BytesIO
 
-from keras.models import load_model, model_from_json
+from keras.models import load_model
 import h5py
 from keras import __version__ as keras_version
 
 from model import nvidia
-import cv2
 
 sio = socketio.Server()
 app = Flask(__name__)
