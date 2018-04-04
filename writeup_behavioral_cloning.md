@@ -69,42 +69,9 @@ Here's how my model is a good fit for this model
  **Optimizer** : Adam (Adaptive Moment Estimation) Optimization is used during training. This is an extention to the Stochastic Gradient Descent method. In this method, instead of having a single learning rate during gradient descent, the algorithm computes individual adaptive learning rates for different parameters 
 
 Here's a representation of the model with hyperparmeters in each layer
-____________________________________________________________________________________________________
-Layer (type)                     Output Shape          Param #     Connected to                     
-====================================================================================================
-lambda_1 (Lambda)                (None, 160, 320, 3)   0           lambda_input_1[0][0]             
-____________________________________________________________________________________________________
-cropping2d_1 (Cropping2D)        (None, 65, 320, 3)    0           lambda_1[0][0]                   
-____________________________________________________________________________________________________
-convolution2d_1 (Convolution2D)  (None, 31, 158, 24)   1824        cropping2d_1[0][0]               
-____________________________________________________________________________________________________
-convolution2d_2 (Convolution2D)  (None, 14, 77, 36)    21636       convolution2d_1[0][0]            
-____________________________________________________________________________________________________
-convolution2d_3 (Convolution2D)  (None, 5, 37, 48)     43248       convolution2d_2[0][0]            
-____________________________________________________________________________________________________
-dropout_1 (Dropout)              (None, 5, 37, 48)     0           convolution2d_3[0][0]            
-____________________________________________________________________________________________________
-convolution2d_4 (Convolution2D)  (None, 3, 35, 64)     27712       dropout_1[0][0]                  
-____________________________________________________________________________________________________
-convolution2d_5 (Convolution2D)  (None, 1, 33, 64)     36928       convolution2d_4[0][0]            
-____________________________________________________________________________________________________
-dropout_2 (Dropout)              (None, 1, 33, 64)     0           convolution2d_5[0][0]            
-____________________________________________________________________________________________________
-flatten_1 (Flatten)              (None, 2112)          0           dropout_2[0][0]                  
-____________________________________________________________________________________________________
-dense_1 (Dense)                  (None, 512)           1081856     flatten_1[0][0]                  
-____________________________________________________________________________________________________
-dense_2 (Dense)                  (None, 64)            32832       dense_1[0][0]                    
-____________________________________________________________________________________________________
-dropout_3 (Dropout)              (None, 64)            0           dense_2[0][0]                    
-____________________________________________________________________________________________________
-dense_3 (Dense)                  (None, 10)            650         dropout_3[0][0]                  
-____________________________________________________________________________________________________
-dense_4 (Dense)                  (None, 1)             11          dense_3[0][0]                    
-====================================================================================================
-Total params: 1,246,697
-Trainable params: 1,246,697
-Non-trainable params: 0
+
+![Model Hyperparamaters](examples/Hyperparameters.png)
+
 **Arriving at the model**
 
 I've based my model on NVIDIA's End-End Deep Learning for Autonomous Driving paper. I've tweaked the model, and I should say that the final model is achieved by trying and testing various configurations. During this process, i've applied various pre-processing steps and augmentation to generate the model and test it in the simulator to achieve the desired results.

@@ -13,6 +13,11 @@ This lab requires:
 
 The lab enviroment can be created with CarND Term1 Starter Kit. Click [here](https://github.com/udacity/CarND-Term1-Starter-Kit/blob/master/README.md) for the details.
 
+* Udacity's Self-Driving Car Simulator
+- [Linux Version](https://d17h27t6h515a5.cloudfront.net/topher/2017/February/58ae46bb_linux-sim/linux-sim.zip)
+- [Windows Version](https://d17h27t6h515a5.cloudfront.net/topher/2017/February/58ae4419_windows-sim/windows-sim.zip)
+- [Mac Version](https://d17h27t6h515a5.cloudfront.net/topher/2017/February/58ae4594_mac-sim.app/mac-sim.app.zip)
+
 ### Details About Files In This Directory
 
 The following resources can be found in this [github repository](https://github.com/mymachinelearnings/CarND-Behavioral-Cloning-P3.git):
@@ -32,7 +37,7 @@ The following resources can be found in this [github repository](https://github.
 - Run `drive.py` file using the following command
     `python drive.py model.h5 run1`
     This command runs the `drive.py` file using the trained model `model.h5` and places the result of video feed as images in `run1` directory. You can use these images later to convert the results into a video
-- Download & Install Udacity's Simulator for Autonomous driving. Open the simulator and click on 'Autonomous Mode'
+- Download & Install Udacity's Simulator] for Autonomous driving. Open the simulator and click on 'Autonomous Mode'
   This should automatically run the car based on your model and generate the results in `run1` folder
 - Once the car finishes about 2 laps, stop the simulator. Create the video feed out of the resulting images in `run1` folder using the following command
     `python video.py run1` This command generates a video @ 60 fps
