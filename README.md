@@ -20,7 +20,8 @@ The lab enviroment can be created with CarND Term1 Starter Kit. Click [here](htt
 
 ### Details About Files In This Directory
 
-The following resources can be found in this [github repository](https://github.com/mymachinelearnings/CarND-Behavioral-Cloning-P3.git):
+The following resources can be found in this [github repository](https://github.com/mymachinelearnings/CarND-Behavioral-Cloning-P3.git)
+
 |File Name        |Purpose                                                                             |
 |:----------------|------------------------------------------------------------------------------------|
 |model.py         |Contains the script for the model, pre-processing and augmentation of data, training|
