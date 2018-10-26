@@ -1,18 +1,20 @@
 [[source]]
-url = "https://pypi.org/simple"
 verify_ssl = true
 name = "pypi"
-
-[packages]
-numpy = "*"
-opencv-python = "*"
-tensorflow-gpu = "*"
-keras = "*"
-socketio = "*"
-eventlet = "*"
-pillow = "*"
+url = "https://pypi.org/simple"
 
 [dev-packages]
+
+[packages]
+eventlet = "*"
+flask-socketio = "*"
+keras = "*"
+moviepy = "*"
+numpy = "*"
+opencv-python = "*"
+pillow = "*"
+requests = "*"
+tensorflow-gpu = "*"
 
 [requires]
 python_version = "3.6"
