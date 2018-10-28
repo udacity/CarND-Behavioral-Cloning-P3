@@ -78,7 +78,7 @@ At the end of the process, the vehicle is able to drive autonomously around the 
 
 #### 2. Final Model Architecture
 
-The final model has been described in [above section](#1. An appropriate model architecture has been employed).
+The final model has been described in [above section](#1-an-appropriate-model-architecture-has-been-employed).
 
 #### 3. Creation of the Training Set & Training Process
 
