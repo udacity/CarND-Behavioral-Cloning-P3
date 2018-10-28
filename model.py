@@ -1,22 +1,31 @@
+import argparse
 import csv
 import cv2
-import numpy as np
 from pathlib import Path
+import matplotlib.pyplot as plt
+import numpy as np
+
 from sklearn import utils
 from sklearn.model_selection import train_test_split
+
 from keras.models import Sequential
-from keras.layers import Flatten, Dense, Lambda, Cropping2D, Conv2D
+from keras.layers import Flatten, Dense, Lambda, Cropping2D, Conv2D, Dropout
+from keras.callbacks import EarlyStopping
+
+BATCH_SIZE = 32
+EPOCHS = 10
 
 def get_model():
     model = Sequential()
 
-    model.add(Lambda(lambda x: x / 127.5 - 1., input_shape=(160, 320, 3)))
-    model.add(Cropping2D(cropping=((70, 25), (0, 0))))
-    model.add(Conv2D(24, (5, 5), padding='valid', strides=(2, 2), activation='relu'))
-    model.add(Conv2D(36, (5, 5), padding='valid', strides=(2, 2), activation='relu'))
-    model.add(Conv2D(48, (5, 5), padding='valid', strides=(2, 2), activation='relu'))
-    model.add(Conv2D(64, (3, 3), padding='valid', activation='relu'))
-    model.add(Conv2D(64, (3, 3), padding='valid', activation='relu'))
+    model.add(Lambda(lambda x: x / 127.5 - 1., input_shape=(100, 200, 3)))
+    model.add(Cropping2D(cropping=((34, 0), (0, 0))))
+    model.add(Conv2D(24, 5, strides=2, activation='relu'))
+    model.add(Conv2D(36, 5, strides=2, activation='relu'))
+    model.add(Conv2D(48, 5, strides=2, activation='relu'))
+    model.add(Conv2D(64, 3, activation='relu'))
+    model.add(Conv2D(64, 3, activation='relu'))
+    model.add(Dropout(0.5))
 
     model.add(Flatten())
     model.add(Dense(100))
@@ -26,20 +35,26 @@ def get_model():
 
     return model
 
-def generator(samples, batch_size=32):
+def preprocess(img):
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
+    img[:,:,0] = cv2.equalizeHist(img[:,:,0])
+    img = cv2.resize(img, (200, 100))
+    return img
+
+def generator(samples):
     num_samples = len(samples)
     while 1:
         utils.shuffle(samples)
-        for offset in range(0, num_samples, batch_size):
-            batch_samples = samples[offset:offset+batch_size]
+        for offset in range(0, num_samples, BATCH_SIZE):
+            batch_samples = samples[offset:offset + BATCH_SIZE]
 
             images = []
             angles = []
             for batch_sample in batch_samples:
                 for pos in range(3):
-                    file_name = Path(batch_sample[pos]).name
-                    image_path = Path('./data/IMG').joinpath(file_name)
-                    images.append(cv2.imread(image_path.as_posix()))
+                    img_path = Path(batch_sample[pos])
+                    img = preprocess(cv2.imread(img_path.as_posix()))
+                    images.append(img)
 
                 center_angle = float(batch_sample[3])
                 correction = 0.2
@@ -57,25 +72,42 @@ def generator(samples, batch_size=32):
             y_train = np.array(angles)
             yield utils.shuffle(X_train, y_train)
 
-BATCH_SIZE = 32
+def plot_history(history):
+    epochs = len(history.history['loss'])
+    plt.plot(range(1, EPOCHS+1), history.history['loss'], marker="o")
+    plt.plot(range(1, EPOCHS+1), history.history['val_loss'], marker="o")
+    plt.ylabel('Loss')
+    plt.xlabel('Epoch')
+    plt.ylim(bottom=0)
+    plt.legend(['Training', 'Validation'])
+    plt.savefig('figure.png')
 
-samples = []
-with Path('./data/driving_log.csv').open() as csvfile:
-    reader = csv.reader(csvfile)
-    for line in reader:
-        samples.append(line)
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dir', default='./data')
+    parser.add_argument('--out', default='model.h5')
+    args = parser.parse_args()
 
-train_samples, valid_samples = train_test_split(samples, test_size=0.2)
 
-train_generator = generator(train_samples, batch_size=BATCH_SIZE)
-valid_generator = generator(valid_samples, batch_size=BATCH_SIZE)
+    samples = []
+    with Path(args.dir).joinpath('driving_log.csv').open() as csvfile:
+        reader = csv.reader(csvfile)
+        for line in reader:
+            samples.append(line)
 
-model = get_model()
-model.compile(loss='mse', optimizer='adam')
-model.fit_generator(train_generator,
-                    steps_per_epoch=int(np.ceil(len(train_samples) / BATCH_SIZE)),
-                    validation_data=valid_generator,
-                    validation_steps=int(np.ceil(len(valid_samples) / BATCH_SIZE)),
-                    epochs=5, verbose=1)
+    train_samples, valid_samples = train_test_split(samples, test_size=0.2)
+    train_generator = generator(train_samples)
+    valid_generator = generator(valid_samples)
 
-model.save('model.h5')
+    model = get_model()
+    model.compile(loss='mse', optimizer='adam')
+    history = model.fit_generator(train_generator,
+                  steps_per_epoch=int(np.ceil(len(train_samples) / BATCH_SIZE)),
+                  validation_data=valid_generator,
+                  validation_steps=int(np.ceil(len(valid_samples) / BATCH_SIZE)),
+                  epochs=10, verbose=1)
+
+    plot_history(history)
+    model.save(args.out)
+
+if __name__ == '__main__': main()
