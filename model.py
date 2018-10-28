@@ -9,8 +9,8 @@ from sklearn import utils
 from sklearn.model_selection import train_test_split
 
 from keras.models import Sequential
-from keras.layers import Flatten, Dense, Lambda, Cropping2D, Conv2D, Dropout
-from keras.callbacks import EarlyStopping
+from keras.layers import Lambda, Cropping2D, Conv2D, Dropout, Flatten, Dense, LeakyReLU
+from keras.callbacks import EarlyStopping, TensorBoard
 
 BATCH_SIZE = 32
 EPOCHS = 10
@@ -20,11 +20,16 @@ def get_model():
 
     model.add(Lambda(lambda x: x / 127.5 - 1., input_shape=(100, 200, 3)))
     model.add(Cropping2D(cropping=((34, 0), (0, 0))))
-    model.add(Conv2D(24, 5, strides=2, activation='relu'))
-    model.add(Conv2D(36, 5, strides=2, activation='relu'))
-    model.add(Conv2D(48, 5, strides=2, activation='relu'))
-    model.add(Conv2D(64, 3, activation='relu'))
-    model.add(Conv2D(64, 3, activation='relu'))
+    model.add(Conv2D(24, 5, strides=2))
+    model.add(LeakyReLU())
+    model.add(Conv2D(36, 5, strides=2))
+    model.add(LeakyReLU())
+    model.add(Conv2D(48, 5, strides=2))
+    model.add(LeakyReLU())
+    model.add(Conv2D(64, 3))
+    model.add(LeakyReLU())
+    model.add(Conv2D(64, 3))
+    model.add(LeakyReLU())
     model.add(Dropout(0.5))
 
     model.add(Flatten())
@@ -74,8 +79,8 @@ def generator(samples):
 
 def plot_history(history):
     epochs = len(history.history['loss'])
-    plt.plot(range(1, EPOCHS+1), history.history['loss'], marker="o")
-    plt.plot(range(1, EPOCHS+1), history.history['val_loss'], marker="o")
+    plt.plot(range(1, epochs+1), history.history['loss'], marker="o")
+    plt.plot(range(1, epochs+1), history.history['val_loss'], marker="o")
     plt.ylabel('Loss')
     plt.xlabel('Epoch')
     plt.ylim(bottom=0)
@@ -98,6 +103,9 @@ def main():
     train_samples, valid_samples = train_test_split(samples, test_size=0.2)
     train_generator = generator(train_samples)
     valid_generator = generator(valid_samples)
+    
+    es_cb = EarlyStopping(monitor='val_loss', verbose=1)
+    tb_cb = TensorBoard(log_dir='log', histogram_freq=0)
 
     model = get_model()
     model.compile(loss='mse', optimizer='adam')
@@ -105,7 +113,7 @@ def main():
                   steps_per_epoch=int(np.ceil(len(train_samples) / BATCH_SIZE)),
                   validation_data=valid_generator,
                   validation_steps=int(np.ceil(len(valid_samples) / BATCH_SIZE)),
-                  epochs=10, verbose=1)
+                  callbacks=[es_cb, tb_cb], epochs=10, verbose=1)
 
     plot_history(history)
     model.save(args.out)
