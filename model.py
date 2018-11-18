@@ -62,8 +62,6 @@ def generator(samples, batch_size = 32, correction = 0.2):
 train_generator = generator(train_samples, batch_size=32, correction=0.2)
 validation_generator = generator(validation_samples, batch_size=32, correction=0.2)
 
-row, col, ch = 160, 320, 3
-
 from keras.models import Sequential
 from keras.layers import Dense, Flatten, Lambda, Reshape, Cropping2D, Conv2D
 
