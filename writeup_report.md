@@ -96,6 +96,8 @@ I used a combination of center , left image and right image.
 #### 2. Final Model Architecture
 
 The final model architecture (model.py lines 111-126) consisted of a convolution neural network with the following layers and layer sizes translated from NVIDIA DAVE-2 CNN.
+
+
             _________________________________________________________________
             Layer (type)                 Output Shape              Param #   
             =================================================================
