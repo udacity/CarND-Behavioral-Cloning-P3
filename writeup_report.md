@@ -26,6 +26,8 @@ The goals / steps of this project are the following:
 [image6]: ./center_2016_12_01_13_31_12_937.jpg "Normal Image"
 [image7]: ./center_2016_12_01_13_31_12_937_flipped.jpg "Flipped Image"
 [image8]: ./cnn-architecture-624x890.png "DAVE-2 Image"
+[image9]: ./mse_graph.png "Without dropout"
+
 
 ## Rubric Points
 ### Here I will consider the [rubric points](https://review.udacity.com/#!/rubrics/432/view) individually and describe how I addressed each point in my implementation.  
@@ -77,7 +79,7 @@ The model used an adam optimizer, so the learning rate was not tuned manually (m
 #### 4. Appropriate training data
 
 Training data was chosen to keep the vehicle driving on the road.
-I used a combination of center image, left image and right image.
+I used a combination of center , left image and right image.
 
 ### Model Architecture and Training Strategy
 
@@ -88,6 +90,7 @@ I used a combination of center image, left image and right image.
 - Implemented DAVE-2 CNN.
 - In order to gauge how well the model was working, I split my image and steering angle data into a training and validation set. I found that my first model had a low mean squared error on the training set but a high mean squared error on the validation set. This implied that the model was overfitting. 
 - To combat the overfitting, I added three dropout layers. 
+    ![over fitting ][image9]
 - At the end of the process, the vehicle is able to drive autonomously around the track without leaving the road.
 
 #### 2. Final Model Architecture
