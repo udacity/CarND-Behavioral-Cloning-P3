@@ -61,7 +61,7 @@ def generator(samples, batch_size=32):
             images = []
             angles = []
             for batch_sample in batch_samples:
-                for i in range(3):
+                for i in range(3): # number 0 = cener , 1 = left, 2 = right ( CVS column number )
                     source_path = batch_sample[i]
                     filename = os.path.basename(source_path)
                     for base_dir in base_dirs:
@@ -72,7 +72,7 @@ def generator(samples, batch_size=32):
                             images.append(cv2.flip(image,1))
                             angle = float(batch_sample[3])
                             angles.append((angle + measurement_correction_factor[i]))
-                            angles.append((angle+ measurement_correction_factor[i])*-1.0)
+                            angles.append((angle + measurement_correction_factor[i])*-1.0)
                             break
 
             # trim image to only see section with road
@@ -100,12 +100,13 @@ validation_data=validation_generator, validation_steps=len(validation_samples), 
 #y_train = np.array(measurements)
 ############################################################
 from keras.models import Sequential
-from keras.layers import Flatten, Dense, Lambda, Cropping2D
+from keras.layers import Flatten, Dense, Lambda, Cropping2D, Dropout
 from keras.layers.convolutional import Convolution2D
 from keras.layers.pooling import MaxPooling2D
 from keras.models import Model
 import matplotlib.pyplot as plt
 
+keep_prob=0.5
 
 model = Sequential()
 model.add(Lambda( lambda x: x / 255.0 -0.5, input_shape=(160,320,3)))
@@ -117,11 +118,16 @@ model.add(Convolution2D(64,3,3,activation="relu"))
 model.add(Convolution2D(64,3,3,activation="relu"))
 model.add(Flatten())
 model.add(Dense(100))
+model.add(Dropout(keep_prob))
 model.add(Dense(50))
+model.add(Dropout(keep_prob))
 model.add(Dense(10))
+model.add(Dropout(keep_prob))
 model.add(Dense(1))
 
 model.compile(loss='mse', optimizer='adam')
+
+model.summary()
 
 #model.fit(X_train, y_train, validation_split=0.2, shuffle=True, nb_epoch=3)
 history_object = model.fit_generator(train_generator, samples_per_epoch =
