@@ -19,12 +19,12 @@ The goals / steps of this project are the following:
 [//]: # (Image References)
 
 [image1]: ./examples/placeholder.png "Model Visualization"
-[image2]: ./examples/placeholder.png "Grayscaling"
-[image3]: ./examples/placeholder_small.png "Recovery Image"
-[image4]: ./examples/placeholder_small.png "Recovery Image"
-[image5]: ./examples/placeholder_small.png "Recovery Image"
-[image6]: ./examples/placeholder_small.png "Normal Image"
-[image7]: ./examples/placeholder_small.png "Flipped Image"
+[image2]: ./center_2018_12_08_16_16_09_662.jpg "Grayscaling"
+[image3]: ./right_2018_12_08_16_16_09_942.jpg "Recovery Image"
+[image4]: ./right_2018_12_08_16_16_10_496.jpg "Recovery Image"
+[image5]: ./right_2018_12_08_16_16_10_844.jpg "Recovery Image"
+[image6]: ./center_2016_12_01_13_31_12_937.jpg "Normal Image"
+[image7]: ./center_2016_12_01_13_31_12_937_flipped.jpg "Flipped Image"
 [image8]: ./cnn-architecture-624x890.png "DAVE-2 Image"
 
 ## Rubric Points
@@ -66,17 +66,9 @@ Model is described between line 111 - 126 in model.py.
 The model contains dropout layers in order to reduce overfitting (model.py lines 121, 123, 125 ).
 
 The model was trained and validated on different data sets to ensure that the model was not overfitting.
- - different recording (code line 41).
-  ( Although because I'm living in Japan, Latency to Udacity server is too high to drive a car in the simulator. I downloaded windows binary and executed locally to generate additional data. But it seems like the windows binary version of the simulator does not generate much record, say below 100 frames. )
- - from multiple camera angle ( code line 64 )
-
-
-
-
+ - From different recordings (code line 41).
 
 The model was tested by running it through the simulator and ensuring that the vehicle could stay on the track.
-
-
 
 #### 3. Model parameter tuning
 
@@ -84,35 +76,62 @@ The model used an adam optimizer, so the learning rate was not tuned manually (m
 
 #### 4. Appropriate training data
 
-Training data was chosen to keep the vehicle driving on the road. I used a combination of center lane driving, recovering from the left and right sides of the road ... 
-
-For details about how I created the training data, see the next section. 
+Training data was chosen to keep the vehicle driving on the road.
+I used a combination of center image, left image and right image.
 
 ### Model Architecture and Training Strategy
 
 #### 1. Solution Design Approach
 
-The overall strategy for deriving a model architecture was to ...
-
-My first step was to use a convolution neural network model similar to the ... I thought this model might be appropriate because ...
-
-In order to gauge how well the model was working, I split my image and steering angle data into a training and validation set. I found that my first model had a low mean squared error on the training set but a high mean squared error on the validation set. This implied that the model was overfitting. 
-
-To combat the overfitting, I modified the model so that ...
-
-Then I ... 
-
-The final step was to run the simulator to see how well the car was driving around track one. There were a few spots where the vehicle fell off the track... to improve the driving behavior in these cases, I ....
-
-At the end of the process, the vehicle is able to drive autonomously around the track without leaving the road.
+- Implemented LeNet based CNN.
+  It worked correctly and can control almost appropriately, but it goes off the road if I run it through night ( 12 Hour long run ).
+- Implemented DAVE-2 CNN.
+- In order to gauge how well the model was working, I split my image and steering angle data into a training and validation set. I found that my first model had a low mean squared error on the training set but a high mean squared error on the validation set. This implied that the model was overfitting. 
+- To combat the overfitting, I added three dropout layers. 
+- At the end of the process, the vehicle is able to drive autonomously around the track without leaving the road.
 
 #### 2. Final Model Architecture
 
-The final model architecture (model.py lines 18-24) consisted of a convolution neural network with the following layers and layer sizes ...
+The final model architecture (model.py lines 111-126) consisted of a convolution neural network with the following layers and layer sizes translated from NVIDIA DAVE-2 CNN.
+            _________________________________________________________________
+            Layer (type)                 Output Shape              Param #   
+            =================================================================
+            lambda_4 (Lambda)            (None, 160, 320, 3)       0         
+            _________________________________________________________________
+            cropping2d_4 (Cropping2D)    (None, 65, 320, 3)        0         
+            _________________________________________________________________
+            conv2d_16 (Conv2D)           (None, 31, 158, 24)       1824      
+            _________________________________________________________________
+            conv2d_17 (Conv2D)           (None, 14, 77, 36)        21636     
+            _________________________________________________________________
+            conv2d_18 (Conv2D)           (None, 5, 37, 48)         43248     
+            _________________________________________________________________
+            conv2d_19 (Conv2D)           (None, 3, 35, 64)         27712     
+            _________________________________________________________________
+            conv2d_20 (Conv2D)           (None, 1, 33, 64)         36928     
+            _________________________________________________________________
+            flatten_4 (Flatten)          (None, 2112)              0         
+            _________________________________________________________________
+            dense_13 (Dense)             (None, 100)               211300    
+            _________________________________________________________________
+            dropout_10 (Dropout)         (None, 100)               0         
+            _________________________________________________________________
+            dense_14 (Dense)             (None, 50)                5050      
+            _________________________________________________________________
+            dropout_11 (Dropout)         (None, 50)                0         
+            _________________________________________________________________
+            dense_15 (Dense)             (None, 10)                510       
+            _________________________________________________________________
+            dropout_12 (Dropout)         (None, 10)                0         
+            _________________________________________________________________
+            dense_16 (Dense)             (None, 1)                 11        
+            =================================================================
+            Total params: 348,219
+            Trainable params: 348,219
+            Non-trainable params: 0
 
-Here is a visualization of the architecture (note: visualizing the architecture is optional according to the project rubric)
-
-![alt text][image1]
+Here is a visualization of the DAVE-2 architecture from Web
+![DAVE-2][image8]
 
 #### 3. Creation of the Training Set & Training Process
 
@@ -122,22 +141,24 @@ To capture good driving behavior, I first recorded two laps on track one using c
 
 I then recorded the vehicle recovering from the left side and right sides of the road back to center so that the vehicle would learn to .... These images show what a recovery looks like starting from ... :
 
-![alt text][image3]
-![alt text][image4]
-![alt text][image5]
+![Almost off the course][image3]
+![Started recovery][image4]
+![Recovered][image5]
 
 Then I repeated this process on track two in order to get more data points.
 
-To augment the data sat, I also flipped images and angles thinking that this would ... For example, here is an image that has then been flipped:
+To augment the data sat, I also flipped images and angles thinking that this would help reduce deviation of data set.
+For example, here is an image that has then been flipped:
 
-![alt text][image6]
-![alt text][image7]
-
-Etc ....
-
-After the collection process, I had X number of data points. I then preprocessed this data by ...
+![Normal image][image6]
+![Flipped image][image7]
 
 
-I finally randomly shuffled the data set and put Y% of the data into a validation set. 
+After the collection process, I had 8106 number of data points. I then preprocessed this data by normalize around 0 center.
 
-I used this training data for training the model. The validation set helped determine if the model was over or under fitting. The ideal number of epochs was Z as evidenced by ... I used an adam optimizer so that manually training the learning rate wasn't necessary.
+
+I finally randomly shuffled the data set and put 20% of the data into a validation set. 
+
+I used this training data for training the model. The validation set helped determine if the model was over or under fitting. 
+The ideal number of epochs was Z as evidenced by ...
+I used an adam optimizer so that manually training the learning rate wasn't necessary.
