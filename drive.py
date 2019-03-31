@@ -15,6 +15,7 @@ from io import BytesIO
 from keras.models import load_model
 import h5py
 from keras import __version__ as keras_version
+import cv2
 
 sio = socketio.Server()
 app = Flask(__name__)
@@ -47,6 +48,11 @@ controller = SimplePIController(0.1, 0.002)
 set_speed = 9
 controller.set_desired(set_speed)
 
+def process_img(img):
+    img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2YUV)  # 可以将PIL图像转化为CV2图像
+    # img = cv2.GaussianBlur(img, (3, 3), 0)
+    return img[60:130, :, :]
+    # return img
 
 @sio.on('telemetry')
 def telemetry(sid, data):
@@ -59,13 +65,14 @@ def telemetry(sid, data):
         speed = data["speed"]
         # The current image from the center camera of the car
         imgString = data["image"]
+
         image = Image.open(BytesIO(base64.b64decode(imgString)))
-        image_array = np.asarray(image)
+        tmp = process_img(image)
+        image_array = np.asarray(tmp)
         steering_angle = float(model.predict(image_array[None, :, :, :], batch_size=1))
 
         throttle = controller.update(float(speed))
-
-        print(steering_angle, throttle)
+        # print('方向盘角度:', steering_angle, "汽车速度:", throttle)
         send_control(steering_angle, throttle)
 
         # save frame
