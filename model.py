@@ -45,15 +45,13 @@ class Dataset:
         return self.size
 
 def load_dataset(csv_fname):
-    csv_path = pathlib.Path(csv_fname)
-    dir_path = csv_path.parent
+    df = pandas.read_csv(csv_fname)
 
-    df = pandas.read_csv(csv_path.open())
-
-    def read_rel_img(rel_fname):
+    dir_path = pathlib.Path(csv_fname).parent
+    def pick_image(relative_fname):
         img_path = dir_path.joinpath(rel_fname)
         return cv2.imread(str(img_path))
-    X = [read_rel_img(rel_fname) for rel_fname in df["center"].values]
+    X = [pick_image(fname) for fname in df["center"].values]
 
     y = df["steering"].values.astype('float32')
 
