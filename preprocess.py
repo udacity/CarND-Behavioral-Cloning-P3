@@ -7,19 +7,23 @@ RAW_SHAPE = (160, 320, 3)
 def preprocess(image):
     assert(image.shape == RAW_SHAPE)
 
-    # Crop
-    image = image[50:-30,:,:]
-
-    # Resize
-    resize = lambda x: int(x * 0.5)
-    shape = image.shape
-    resized_wh = (resize(shape[1]), resize(shape[0]))
-    image = cv2.resize(image, resized_wh)
-
-    # Standardize
-    image = (image / 255.0 - 0.5) * 2.0
+    image = crop(image)
+    image = resize(image)
+    image = standardize(image)
 
     return numpy.array(image, dtype='float32')
+
+def crop(image):
+    return image[50:-30,:,:]
+
+def resize(image):
+    __resize = lambda x: int(x * 0.5)
+    shape = image.shape
+    resized_wh = (__resize(shape[1]), __resize(shape[0]))
+    return cv2.resize(image, resized_wh)
+
+def standardize(image):
+    return (image / 255.0 - 0.5) * 2.0
 
 INPUT_SHAPE = preprocess(numpy.empty(RAW_SHAPE)).shape
 
