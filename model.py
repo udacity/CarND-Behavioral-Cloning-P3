@@ -58,7 +58,7 @@ def main():
             batch_size=128,
             validation_split=0.1,
             shuffle=True,
-            epochs=10,
+            epochs=20,
             verbose=1,
             callbacks=[early_stopping_callback],
             )
