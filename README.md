@@ -69,6 +69,7 @@ Thus, I inserted preprocess code into [drive.py](drive.py) line 66.
 
 The model contains batch normalization layers in order to reduce overfitting ([model.py](model.py) lines 133, 137, 153).
 Batch normalization layers are inserted after each convolutional layer and fully connected layer.
+The paramaters for batch normalization are used the default ones.
 
 The model was trained and validated on different data sets to ensure that the model was not overfitting (code line 57).
 The model was tested by running it through the simulator and ensuring that the vehicle could stay on the track.
@@ -85,11 +86,9 @@ Training data was chosen to keep the vehicle driving on the road.
 I used a center driving data created by myself and project provided dataset.
 
 
-### Model Architecture and Training Strategy
+### Architecture and Training Documentation
 
 #### 1. Solution Design Approach
-
-The overall strategy for deriving a model architecture was to ...
 
 My first step was to use a convolution neural network model based on several convolution layers and max pooling.
 It was a basic model I used many time for solving the comupter vision tasks, so I chose it for a starting point.
@@ -99,51 +98,105 @@ To combat the overfitting, I used batch normalization layer implemented in keras
 Batch normalization and dropout techniques cannot be used together, so I used only batch normalization.
 
 However, I realized it was too complicated for me to accomplish all preprocessing tasks I wanted on keras lambda layers.
-Thus, I decided to use the plain function to apply preprocessing to images.
-This approach also reduced the memory usage of GPU because the model was fed with cropped and resized images.
+Also, I suffered from out of memory error of GPU and failed to make network deep enough.
+Thus, I decided to use the plain function to apply preprocessing to images, which would offload preprocessing from GPU and reduce GPU memory usage.
+This enabled the network to deeper and made my code simple and clean.
 
 The final step was to run the simulator to see how well the car was driving around track one.
 The vehicle is able to drive autonomously around the track without leaving the road.
-However, there were a few spots where the vehicle nearly fell off the track.
 
-1. curved load after the zone with red and white stripe (around 2:40)
-2. before the bridge river/lake coin sight (around 1:25)
-
-
+<!-- #region -->
 #### 2. Final Model Architecture
 
 The final model architecture ([model.py](model.py) lines 128-169) consisted of a convolution neural network with the following layers and layer sizes.
 
 
+| Layer               | Output Size | Description                                    |
+| :------------------ | :---------- | :--------------------------------------------- |
+| Input               | 40x160x3    |                                                |
+| Convolution         | 40x160x32   | (3x3x32) filter / (1x1) stride / SAME padding  |
+| Batch Normalization | 40x160x32   | default parameters                             |
+| ReLU                | 40x160x32   |                                                |
+| Convolution         | 40x160x32   | (3x3x32) filter / (1x1) stride / SAME padding  |
+| Batch Normalization | 40x160x32   | default parameters                             |
+| ReLU                | 40x160x32   |                                                |
+| Max Pooling         | 20x80x32    | (2x2) kernel / (2x2) stride / VALID padding    |
+| Convolution         | 20x80x64    | (3x3x64) filter / (1x1) stride / SAME padding  |
+| Batch Normalization | 20x80x64    | default parameters                             |
+| ReLU                | 20x80x64    |                                                |
+| Convolution         | 20x80x64    | (3x3x64) filter / (1x1) stride / SAME padding  |
+| Batch Normalization | 20x80x64    | default parameters                             |
+| ReLU                | 20x80x64    |                                                |
+| Max Pooling         | 10x40x64    | (2x2) kernel / (2x2) stride / VALID padding    |
+| Convolution         | 10x40x128   | (3x3x128) filter / (1x1) stride / SAME padding |
+| Batch Normalization | 10x40x128   | default parameters                             |
+| ReLU                | 10x40x128   |                                                |
+| Convolution         | 10x40x128   | (3x3x128) filter / (1x1) stride / SAME padding |
+| Batch Normalization | 10x40x128   | default parameters                             |
+| ReLU                | 10x40x128   |                                                |
+| Max Pooling         | 5x20x128    | (2x2) kernel / (2x2) stride / VALID padding    |
+| Convolution         | 5x20x256    | (3x3x256) filter / (1x1) stride / SAME padding |
+| Batch Normalization | 5x20x256    | default parameters                             |
+| ReLU                | 5x20x256    |                                                |
+| Convolution         | 5x20x256    | (3x3x256) filter / (1x1) stride / SAME padding |
+| Batch Normalization | 5x20x256    | default parameters                             |
+| ReLU                | 5x20x256    |                                                |
+| Max Pooling         | 2x10x256    | (2x2) kernel / (2x2) stride / VALID padding    |
+| Convolution         | 2x10x512    | (3x3x512) filter / (1x1) stride / SAME padding |
+| Batch Normalization | 2x10x512    | default parameters                             |
+| ReLU                | 2x10x512    |                                                |
+| Convolution         | 2x10x512    | (3x3x512) filter / (1x1) stride / SAME padding |
+| Batch Normalization | 2x10x512    | default parameters                             |
+| ReLU                | 2x10x512    |                                                |
+| Max Pooling         | 1x5x512     | (2x2) kernel / (2x2) stride / VALID padding    |
+| Flatten             | 2560        |                                                |
+| Fully Connected     | 1024        |                                                |
+| Batch Normalization | 1024        | default parameters                             |
+| ReLU                | 1024        |                                                |
+| Fully Connected     | 256         |                                                |
+| Batch Normalization | 256         | default parameters                             |
+| ReLU                | 256         |                                                |
+| Fully Connected     | 64          |                                                |
+| Batch Normalization | 64          | default parameters                             |
+| ReLU                | 64          |                                                |
+| Fully Connected     | 1           |                                                |
+<!-- #endregion -->
 
-
+<!-- #region -->
 #### 3. Creation of the Training Set & Training Process
 
 To capture good driving behavior, I first recorded two laps on track one using center lane driving. Here is an example image of center lane driving:
 
-![alt text][image2]
+![Center driving](assets/center.jpg)
 
-I then recorded the vehicle recovering from the left side and right sides of the road back to center so that the vehicle would learn to .... These images show what a recovery looks like starting from ... :
+To augment the data set, I flipped images and angles.
+This would generalizing dataset because the road of track one is counter-clockwise, which might contain biases.
+For example, here is an image that has then been flipped (left is raw, right is flipped):
 
-![alt text][image3]
-![alt text][image4]
-![alt text][image5]
+![Raw image](assets/non_flipped.jpg)
+![Flipped image](assets/flipped.jpg)
 
-Then I repeated this process on track two in order to get more data points.
+Using the collected data and the project provided data, I had 21078 number of data points.
+I then preprocessed this data by calling `preprocess()` ([preprocess.py](preprocess.py)).
 
-To augment the data sat, I also flipped images and angles thinking that this would ... For example, here is an image that has then been flipped:
+Preprocessing consists of three steps:
 
-![alt text][image6]
-![alt text][image7]
+* Raw image: ![Raw image](assets/non_preprocessed.jpg)
 
-Etc ....
 
-After the collection process, I had X number of data points. I then preprocessed this data by ...
+1. cropping: cut top and bottom parts
+   ![Cropped image](assets/cropped.jpg)
 
+2. resizing: shrink to 0.5x size
+   ![Resized image](assets/resized.jpg)
+
+3. standardization: standardize values to [-1.0,1.0] range
+<!-- #endregion -->
 
 I finally randomly shuffled the data set and put 10% of the data into a validation set. 
 
 I used this training data for training the model.
 The validation set helped determine if the model was over or under fitting.
+I set the number of epoch to 20 and used EarlyStopping callback to achieve early stopping in keras, resulted in stopping at epoch 8.
 
 I used an adam optimizer so that manually training the learning rate wasn't necessary.
