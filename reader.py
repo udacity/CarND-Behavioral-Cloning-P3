@@ -6,6 +6,7 @@ import numpy as np
 
 
 def read_sim_data(index):
+    # read csv
     path_current_root = CFG.path_fmt_data_root.format(index)
     path = path_current_root + CFG.path_log
     print('Reading file {}...'.format(path))
@@ -16,6 +17,7 @@ def read_sim_data(index):
             csv_lines.append(line)
     print('File read successfully.', csv_lines[0])
 
+    # read images
     print('Reading images...')
     images = []
     steering_measurements = []
@@ -26,16 +28,16 @@ def read_sim_data(index):
         current_path = path_current_root + CFG.path_img + filename
         if os.path.exists(current_path):
             image = cv2.imread(current_path)
+            image = image[...,::-1]
             images.append(image)
             steering_measurement = float(line[3])
             steering_measurements.append(steering_measurement)
             success += 1
         else:
             print('WARNING! File missing: {}'.format(current_path))
-
     images = np.array(images)
     steering_measurements = np.array(steering_measurements)
-    print('From a total of {} successully read {} images.'.format(len(csv_lines), success))
+    print('From a total of {} successfully read {} images.'.format(len(csv_lines), success))
     return images, steering_measurements
 
 
