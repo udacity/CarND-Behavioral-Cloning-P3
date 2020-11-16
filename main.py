@@ -1,12 +1,14 @@
 from cfg import *
-from reader import read_sim_data
+import reader
 import numpy as np
 from keras.models import Sequential
-from keras.layers import Flatten, Dense, Lambda, Conv2D, MaxPool2D, Activation
+from keras.layers import Flatten, Dense, Lambda, Conv2D, MaxPool2D, Activation, Dropout
 import matplotlib.pyplot as plt
 import os
+import data_manip
 
-GPU = False # or True
+
+GPU = False  or True
 if GPU:
     os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
 else:
@@ -32,23 +34,20 @@ def lenet(x, y):
     model.add(Activation('relu'))
     model.add(Flatten())
     model.add(Dense(1000))
+    model.add(Dropout(0.5))
     model.add(Activation('relu'))
     model.add(Dense(200))
     model.add(Activation('relu'))
     model.add(Dense(1))
 
     model.compile(loss='mse', optimizer='adam')
-    model.fit(x, y, validation_split=0.2, shuffle=True, epochs=15)
+    model.fit(x, y, validation_split=0.2, shuffle=True, epochs=5)
     model.save(CFG.path_model)
 
 
-
 def main(index):
-    X_train, y_train = read_sim_data(index)
-    # show_img(X_train[0])
-
-    print(X_train.shape)
-    print(y_train.shape)
+    X_train, y_train = reader.read_sim_data(index)
+    X_train, y_train = data_manip.preprocess(X_train, y_train)
 
     lenet(X_train, y_train)
 

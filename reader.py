@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 
 
-def read_sim_data(index):
+def read_sim_data(index=1):
     # read csv
     path_current_root = CFG.path_fmt_data_root.format(index)
     path = path_current_root + CFG.path_log
@@ -35,6 +35,7 @@ def read_sim_data(index):
             success += 1
         else:
             print('WARNING! File missing: {}'.format(current_path))
+            pass
     images = np.array(images)
     steering_measurements = np.array(steering_measurements)
     print('From a total of {} successfully read {} images.'.format(len(csv_lines), success))
