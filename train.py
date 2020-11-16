@@ -1,4 +1,4 @@
-from cfg import *
+import cfg
 import reader
 import numpy as np
 from keras.models import Sequential
@@ -45,17 +45,19 @@ def lenet(x, y):
     model.add(Dense(1))
 
     model.compile(loss='mse', optimizer='adam')
-    model.fit(x, y, validation_split=0.2, shuffle=True, epochs=2)
-    model.save(CFG.path_model)
+    model.fit(x, y, validation_split=0.2, shuffle=True, epochs=5)
+    model.save(cfg.path_model)
 
 
-def main(index):
-    X_train, y_train = reader.read_sim_data(index)
+def main(dataset, verbose=False):
+    X_train, y_train = reader.read_sim_data(dataset)
     X_train, y_train = data_manip.preprocess(X_train, y_train)
+    if verbose:
+        data_manip.show_example(X_train, y_train, 0, 3, len(X_train) // 2)
 
     lenet(X_train, y_train)
 
 
 if __name__ == '__main__':
-    main(1)
+    main(dataset=1, verbose=True)
 

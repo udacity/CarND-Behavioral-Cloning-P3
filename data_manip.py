@@ -1,4 +1,4 @@
-from cfg import *
+import cfg
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
@@ -14,6 +14,18 @@ def flip(images, measurements):
     #plt.show()
     measurements = -1.0 * measurements
     return images, measurements
+
+
+def show_example(images, measurements, start_index, columns=3, second_row_offset=3):
+    _, axes = plt.subplots(2, columns, figsize=(12, 9))
+    for x in range(columns):
+        idx = start_index + x
+        axes[0][x].title.set_text(measurements[idx])
+        axes[0][x].imshow(images[idx])
+        idx += second_row_offset
+        axes[1][x].title.set_text(measurements[idx])
+        axes[1][x].imshow(images[idx])
+    plt.show()
 
 
 def preprocess(X, y, verbose=False):
