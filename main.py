@@ -45,7 +45,7 @@ def lenet(x, y):
     model.add(Dense(1))
 
     model.compile(loss='mse', optimizer='adam')
-    model.fit(x, y, validation_split=0.2, shuffle=True, epochs=5)
+    model.fit(x, y, validation_split=0.2, shuffle=True, epochs=2)
     model.save(CFG.path_model)
 
 
