@@ -22,6 +22,9 @@ model = None
 prev_image_array = None
 
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
+
 class SimplePIController:
     def __init__(self, Kp, Ki):
         self.Kp = Kp
