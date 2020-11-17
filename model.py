@@ -1,8 +1,22 @@
+"""
+Improvement ideas:
+- Use screenshots from several runs
+- Challenge videos
+- Recovery videos
+- Reverse videos
+- Gather smoother steering input (mouse, wheel?)
+- Gauss smoothing of the road surface
+- CLAHE
+- HSL: emphasize colors
+- nVidia algorithm
+- Add throttle / brake
+"""
+
 import cfg
 import reader
 import numpy as np
 from keras.models import Sequential
-from keras.layers import Flatten, Dense, Lambda, Conv2D, MaxPool2D, Activation, Dropout
+from keras.layers import Flatten, Dense, Lambda, Conv2D, MaxPool2D, Activation, Dropout, Cropping2D
 import matplotlib.pyplot as plt
 import os
 import data_manip
@@ -21,7 +35,8 @@ def show_img(image):
 
 def lenet_v1(x, y):
     model = Sequential()
-    model.add(Lambda(lambda x: x / 255.0 - 0.5, input_shape=(160, 320, 3)))
+    model.add(Cropping2D(((30, 20), (0, 0)), input_shape=(160, 320, 3)))
+    model.add(Lambda(lambda x: x / 255.0 - 0.5))
     model.add(Conv2D(filters=16, kernel_size=(7,7), strides=(2,2), padding='same'))  # 160x320x16
     model.add(MaxPool2D((4,4)))  # 40x80x16
     model.add(Activation('relu'))
