@@ -1,15 +1,16 @@
 """
 Improvement ideas:
 - Use screenshots from several runs
-- Challenge videos
-- Recovery videos
-- Reverse videos
+- Use challenge videos
+- Use recovery videos
+- Use reverse videos
 - Gather smoother steering input (mouse, wheel?)
 - Gauss smoothing of the road surface
 - CLAHE
 - HSL: emphasize colors
 - nVidia algorithm
 - Add throttle / brake
+- If too much input: then use a generator function with with .fit_generator()
 """
 
 import cfg
@@ -87,15 +88,16 @@ def lenet_v2(x, y):
     model.save(cfg.path_model)
 
 
-def main(dataset, verbose=False):
-    X_train, y_train = reader.read_sim_data(dataset)
+def main(first_dataset, last_dataset, verbose=False):
+    X_train, y_train = reader.read_datasets(first_dataset, last_dataset)
     X_train, y_train = data_manip.preprocess(X_train, y_train)
+
     if verbose:
-        data_manip.show_example(X_train, y_train, 0, 3, len(X_train) // 2)
+        data_manip.show_example(X_train, y_train, start_index=0, columns=3, second_row_offset=len(X_train) // 2)
 
     lenet_v1(X_train, y_train)
 
 
 if __name__ == '__main__':
-    main(dataset=1, verbose=False)
+    main(first_dataset=1, last_dataset=3, verbose=False)
 

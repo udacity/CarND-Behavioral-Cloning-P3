@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def read_line(data_idx, csv_line, side='center'):
+def read_line(data_idx, csv_line, side='center', verbose=True):
     column = 0
     measurement = float(csv_line[3])
     if side == 'left':
@@ -23,7 +23,8 @@ def read_line(data_idx, csv_line, side='center'):
         images = image[..., ::-1]
         return image, measurement
     else:
-        print('WARNING! File missing: {}'.format(path))
+        if verbose:
+            print('WARNING! File missing: {}'.format(path))
         return None, None
 
 
@@ -39,7 +40,7 @@ def read_sim_data(dataset=1, verbose=False):
         reader = csv.reader(csv_file)
         for line in reader:
             csv_lines.append(line)
-    print('File read successfully.', csv_lines[0])
+    print('File read successfully. First line:\n', csv_lines[0])
 
     # read images
     print('Reading images...')
@@ -47,26 +48,38 @@ def read_sim_data(dataset=1, verbose=False):
     steering_measurements = []
     success = 0
     for line in csv_lines:
-        image, steering_measurement = read_line(dataset, line, side='center')
+        image, steering_measurement = read_line(dataset, line, side='center', verbose=verbose)
         if image is not None and steering_measurement is not None:
             images.append(image[...,::-1])
             steering_measurements.append(steering_measurement)
             success += 1
-        image, steering_measurement = read_line(dataset, line, side='left')
+        image, steering_measurement = read_line(dataset, line, side='left', verbose=verbose)
         if image is not None and steering_measurement is not None:
             images.append(image[...,::-1])
             steering_measurements.append(steering_measurement)
             success += 1
-        image, steering_measurement = read_line(dataset, line, side='right')
+        image, steering_measurement = read_line(dataset, line, side='right', verbose=verbose)
         if image is not None and steering_measurement is not None:
             images.append(image[...,::-1])
             steering_measurements.append(steering_measurement)
             success += 1
     images = np.array(images)
     steering_measurements = np.array(steering_measurements)
-    print('From a total of {} successfully read {} images.'.format(len(csv_lines * 3), success))
+    print('From a total of {} successfully read {} images to dataset.'.format(len(csv_lines * 3), success))
     return images, steering_measurements
 
 
+def read_datasets(first, last, verbose=False):
+    X_train, y_train = read_sim_data(first, verbose)
+    if last > first:
+        for i in range(first + 1, last + 1):
+            X, y = read_sim_data(i, verbose)
+            X_train = np.vstack((X_train, X))
+            y_train = np.hstack((y_train, y))
+    if verbose:
+        print('Loaded {} images from datasets {}..{} (both inclusive).'.format(X_train.shape[0], first, last))
+    return X_train, y_train
+
+
 if __name__ == '__main__':
-    read_sim_data(dataset=1, verbose=True)
+    read_datasets(first=1, last=3, verbose=True)
