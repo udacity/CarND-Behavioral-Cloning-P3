@@ -22,7 +22,11 @@ model = None
 prev_image_array = None
 
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+import cfg
+if cfg.GPU:
+    os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
+else:
+    os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 
 class SimplePIController:

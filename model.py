@@ -8,8 +8,7 @@ import os
 import data_manip
 
 
-GPU = False  or True
-if GPU:
+if cfg.GPU:
     os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
 else:
     os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
@@ -40,7 +39,7 @@ def lenet_v1(x, y):
     model.add(Dense(1))
 
     model.compile(loss='mse', optimizer='adam')
-    model.fit(x, y, validation_split=0.2, shuffle=True, epochs=5)
+    model.fit(x, y, validation_split=0.2, shuffle=True, epochs=3)
     model.save(cfg.path_model)
 
 
@@ -69,7 +68,7 @@ def lenet_v2(x, y):
     model.add(Dense(1))
 
     model.compile(loss='mse', optimizer='adam')
-    model.fit(x, y, validation_split=0.2, shuffle=True, epochs=5)
+    model.fit(x, y, validation_split=0.2, shuffle=True, epochs=3)
     model.save(cfg.path_model)
 
 
@@ -79,7 +78,7 @@ def main(dataset, verbose=False):
     if verbose:
         data_manip.show_example(X_train, y_train, 0, 3, len(X_train) // 2)
 
-    lenet_v2(X_train, y_train)
+    lenet_v1(X_train, y_train)
 
 
 if __name__ == '__main__':
