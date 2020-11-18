@@ -62,6 +62,9 @@ After flattening the resulting width is 12800. After a Dropout layer of 0.3 othe
 
 The last layer contains only a single node, that represents the steering angle.
 
+![alt text][image1]
+
+
 #### 2. Attempts to reduce overfitting in the model
 
 This model is much bigger than neccessary. The evidences are:
@@ -73,7 +76,7 @@ Possible solutions:
 * Lessen the network size
 * Lessen the number of epochs
 
-Because the model drove very well, I decided to lessen the epochs to only 1. It passed my tests. So I did not feel to battle overtraining anymore. I just added the dropout because it was an expectation in the rubric points. (model.py line 55)
+Because the model drove very well, I decided to lessen the epochs to only 1. It passed my tests. So I did not feel to battle overtraining anymore. I just added the dropout because it was an expectation in the rubric points. (model.py line 55) 
 
 
 #### 3. Model parameter tuning
@@ -86,7 +89,7 @@ No other tuning was required. This is actually my first iteration, and as it wor
 
 Training data was chosen to keep the vehicle driving on the road.
 
-I used center driving on the first map, and race line driving on the second map. I used 2 round's image data from driving on the 1st map and 2 round's image data from driving on the second map. I was driving with keyboard. I planned on doing recovery driving, driving in reverse directions but it was not needed. 
+I used center driving on the first map, and race line driving on the second map. I used 2 full round's image data from driving on the 1st map and 2 full round's image data from driving on the 2nd map. I was driving with keyboard. I planned on doing recovery driving, driving in reverse directions but it was not needed. 
 
 For details about how I created the training data, see the next section. 
 
@@ -94,15 +97,11 @@ For details about how I created the training data, see the next section.
 
 #### 1. Solution Design Approach
 
-The overall strategy for deriving a model architecture was to ...
+The overall strategy for deriving a model architecture was to have the model analyze the images at every frame, and have a single output node that servers as steering input.
 
-My first step was to use a convolution neural network model similar to the ... I thought this model might be appropriate because ...
+I previously had good experience with a convolutional network, so I thought that might be a good start. Upscaled it to fit the image size and applied bigger than 1 stride and maxpool 4 * 4 layers to decrease the image size as fast as possible and keeping the useful information at the same time.
 
-In order to gauge how well the model was working, I split my image and steering angle data into a training and validation set. I found that my first model had a low mean squared error on the training set but a high mean squared error on the validation set. This implied that the model was overfitting. 
-
-To combat the overfitting, I modified the model so that ...
-
-Then I ... 
+In order to gauge how well the model was working, I split my image and steering angle data into a training and validation set. I found that my first model had a low mean squared error on the training set but a high mean squared error on the validation set. This implied that the model was overfitting. To combat the overfitting, I added more input images, dropout and changed the number of the epochs to only one.
 
 The final step was to run the simulator to see how well the car was driving around track one. There were a few spots where the vehicle fell off the track... to improve the driving behavior in these cases, I ....
 
@@ -110,36 +109,36 @@ At the end of the process, the vehicle is able to drive autonomously around the 
 
 #### 2. Final Model Architecture
 
-The final model architecture (model.py lines 18-24) consisted of a convolution neural network with the following layers and layer sizes ...
-
-Here is a visualization of the architecture (note: visualizing the architecture is optional according to the project rubric)
-
-![alt text][image1]
+The initial model proved to be good, so I did not make any more modifications.
 
 #### 3. Creation of the Training Set & Training Process
 
-To capture good driving behavior, I first recorded two laps on track one using center lane driving. Here is an example image of center lane driving:
+To capture good driving behavior, I first recorded two laps on track one using center lane driving. Here is an example image of center lane driving:  
 
 ![alt text][image2]
 
-I then recorded the vehicle recovering from the left side and right sides of the road back to center so that the vehicle would learn to .... These images show what a recovery looks like starting from ... :
+I collected all data in a ./data folder, and each dataset (run) in a subfolder 01, 02, and so on. These is big amount of data, so it is not uploaded to GitHub.
 
-![alt text][image3]
-![alt text][image4]
-![alt text][image5]
+I also collected the left and right camera images, and modified their steering values by 0.4 and -0.4 respectively so that when the center camera sees something similar during playback, it knows that it should steer back.
 
-Then I repeated this process on track two in order to get more data points.
-
-To augment the data sat, I also flipped images and angles thinking that this would ... For example, here is an image that has then been flipped:
+To have more useful data I flipped the images and used both the original and flipped ones for training.
 
 ![alt text][image6]
-![alt text][image7]
 
-Etc ....
+I also cropped the top and bottom of the images and normalized the pixel values.
 
-After the collection process, I had X number of data points. I then preprocessed this data by ...
+The above proved sufficient to drive the 1st map both in forward and reverse direction, even though I did not collect reverse driving data. 
 
+Then I decided to go for the 2nd map. I collected one lap of data in forward and one lap of data in reverse direction. This proved sufficient for the car to drive both maps in both directions.
 
-I finally randomly shuffled the data set and put Y% of the data into a validation set. 
+There was no need to capture recovey images.
 
-I used this training data for training the model. The validation set helped determine if the model was over or under fitting. The ideal number of epochs was Z as evidenced by ... I used an adam optimizer so that manually training the learning rate wasn't necessary.
+My input data ended up consisting of ca. 27500 images.
+
+I finally randomly shuffled the data set and put 20% of the data into a validation set. 
+
+The car was able to drive on both maps and directions, but the driving was somewhat jerky. The main reason was that I drove by keyboard and my driving was also jerky. I decided to improve my driving data and repeated all runs with keyboard, and retrained the model. The result was not really surprising:
+* the autonomous driving became much smoother
+* but at the same time it introduced a strong wobbling left to right.
+
+The reason is probably the fact that the modell was not really faced with recovery situations, and did not learn the difference betweeen straight road and bendings. Possible solutions could be collecting recovery driving data. But due to time pressure I decided for now to fall back to the previously used data. 
