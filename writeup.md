@@ -16,8 +16,9 @@ The goals / steps of this project are the following:
 
 [//]: # (Image References)
 
-[image1]: ./examples/placeholder.png "Model Visualization"
-[image7]: ./examples/placeholder_small.png "Flipped Image"
+[image1]: ./doc/model.jpg "Model Architecture"
+[image2]: ./doc/center.jpg "Center Image"
+[image3]: ./doc/preprocessed_images.jpg "Cropped and flipped images"
 
 ## Rubric Points
 ### Here I will consider the [rubric points](https://review.udacity.com/#!/rubrics/432/view) individually and describe how I addressed each point in my implementation.  
@@ -50,6 +51,8 @@ Note that in case of the 2nd map the connection always gets broken between drive
 
 The model.py file contains the code for training and saving the convolution neural network. The file shows the pipeline I used for training and validating the model, and it contains comments to explain how the code works.
 
+All 27500 data iteams are loaded into the memory. With 32 gigabites of RAM it was no problem, but with 16 or less it might be. Loading the data and training takes ca. 1.5 minutes on an average PC (as of 2020).
+
 ### Model Architecture and Training Strategy
 
 #### 1. An appropriate model architecture has been employed
@@ -62,7 +65,7 @@ After flattening the resulting width is 12800. After a Dropout layer of 0.3 othe
 
 The last layer contains only a single node, that represents the steering angle.
 
-![alt text][image1]
+![Model Architecture][image1]
 
 
 #### 2. Attempts to reduce overfitting in the model
@@ -115,7 +118,7 @@ The initial model proved to be good, so I did not make any more modifications.
 
 To capture good driving behavior, I first recorded two laps on track one using center lane driving. Here is an example image of center lane driving:  
 
-![alt text][image2]
+![Center image example][image2]
 
 I collected all data in a ./data folder, and each dataset (run) in a subfolder 01, 02, and so on. These is big amount of data, so it is not uploaded to GitHub.
 
@@ -123,7 +126,7 @@ I also collected the left and right camera images, and modified their steering v
 
 To have more useful data I flipped the images and used both the original and flipped ones for training.
 
-![alt text][image6]
+![Cropped and flipped images][image3]
 
 I also cropped the top and bottom of the images and normalized the pixel values.
 
