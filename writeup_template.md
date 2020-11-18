@@ -1,8 +1,6 @@
 # **Behavioral Cloning** 
 
-## Writeup Template
-
-### You can use this file as a template for your writeup if you want to submit it as a markdown file, but feel free to use some other method and submit a pdf if you prefer.
+## Writeup
 
 ---
 
@@ -19,11 +17,6 @@ The goals / steps of this project are the following:
 [//]: # (Image References)
 
 [image1]: ./examples/placeholder.png "Model Visualization"
-[image2]: ./examples/placeholder.png "Grayscaling"
-[image3]: ./examples/placeholder_small.png "Recovery Image"
-[image4]: ./examples/placeholder_small.png "Recovery Image"
-[image5]: ./examples/placeholder_small.png "Recovery Image"
-[image6]: ./examples/placeholder_small.png "Normal Image"
 [image7]: ./examples/placeholder_small.png "Flipped Image"
 
 ## Rubric Points
@@ -38,13 +31,20 @@ My project includes the following files:
 * model.py containing the script to create and train the model
 * drive.py for driving the car in autonomous mode
 * model.h5 containing a trained convolution neural network 
-* writeup_report.md or writeup_report.pdf summarizing the results
+* data_manip.py containing image manipulation functions
+* reader.py containing csv and image reading functions
+* cfg.py containing configurations such as directories, filenames
+* this writeup.md summarizing the results
+
 
 #### 2. Submission includes functional code
 Using the Udacity provided simulator and my drive.py file, the car can be driven autonomously around the track by executing 
 ```sh
 python drive.py model.h5
 ```
+Both maps can be driven in both directions. In order to drive in the reverse direction use manual override mode by pressing W or S keys. Turn back, then release the controls. The car will start driving autonomously.
+
+Note that in case of the 2nd map the connection always gets broken between drive.py and the simulator. This can be seen especially in those cases when the car stops. It can be observed in drive.py's console output that its PI controller increases the throttle but the car doesn't move. Sometimes the car just goes straight off from bends due to the very same reason. Even in these cases it can be observed in the console that drive.py sends out the correct steering commands. These never happen on the 1st map.
 
 #### 3. Submission code is usable and readable
 
@@ -54,23 +54,39 @@ The model.py file contains the code for training and saving the convolution neur
 
 #### 1. An appropriate model architecture has been employed
 
-My model consists of a convolution neural network with 3x3 filter sizes and depths between 32 and 128 (model.py lines 18-24) 
+My model starts with image cropping and normalization (model.py lines 43-44) 
 
-The model includes RELU layers to introduce nonlinearity (code line 20), and the data is normalized in the model using a Keras lambda layer (code line 18). 
+They are followed by 3 convolution layers rangind from 7 * 7 to 3 * 3 kernel sizes, interpersed by max pooling with 4 * 4 kernel sizes and RELUs. The very first convolitional layer uses 2 * 2 stride to decrease the size of the next layer further (model.py lines 45-53)
+
+After flattening the resulting width is 12800. After a Dropout layer of 0.3 other two fully connected layers come with RELUs.
+
+The last layer contains only a single node, that represents the steering angle.
 
 #### 2. Attempts to reduce overfitting in the model
 
-The model contains dropout layers in order to reduce overfitting (model.py lines 21). 
+This model is much bigger than neccessary. The evidences are:
+* Training accuracy becomes lover than the validation accuracy as soon as the 2nd epoch. This is a clear sign of overtraining.
 
-The model was trained and validated on different data sets to ensure that the model was not overfitting (code line 10-16). The model was tested by running it through the simulator and ensuring that the vehicle could stay on the track.
+Possible solutions:
+* Feed it with more data
+* Use dropout
+* Lessen the network size
+* Lessen the number of epochs
+
+Because the model drove very well, I decided to lessen the epochs to only 1. It passed my tests. So I did not feel to battle overtraining anymore. I just added the dropout because it was an expectation in the rubric points. (model.py line 55)
+
 
 #### 3. Model parameter tuning
 
-The model used an adam optimizer, so the learning rate was not tuned manually (model.py line 25).
+The model used an adam optimizer, so the learning rate was not tuned manually (model.py line 62).
+
+No other tuning was required. This is actually my first iteration, and as it worked perfectly, I didn't fine tune it. The main fine tuning that could be applied is the time consuming experimentatin with decreasing its size up to the point its size and training time is minimized.
 
 #### 4. Appropriate training data
 
-Training data was chosen to keep the vehicle driving on the road. I used a combination of center lane driving, recovering from the left and right sides of the road ... 
+Training data was chosen to keep the vehicle driving on the road.
+
+I used center driving on the first map, and race line driving on the second map. I used 2 round's image data from driving on the 1st map and 2 round's image data from driving on the second map. I was driving with keyboard. I planned on doing recovery driving, driving in reverse directions but it was not needed. 
 
 For details about how I created the training data, see the next section. 
 
