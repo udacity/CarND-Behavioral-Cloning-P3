@@ -3,7 +3,6 @@ import cfg
 import os
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
 
 
 def read_line(data_idx, csv_line, side='center', verbose=True):
@@ -26,8 +25,6 @@ def read_line(data_idx, csv_line, side='center', verbose=True):
         if verbose:
             print('WARNING! File missing: {}'.format(path))
         return None, None
-
-
 
 
 def read_sim_data(dataset=1, verbose=False):

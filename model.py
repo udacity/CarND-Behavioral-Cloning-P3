@@ -46,7 +46,7 @@ def build_model(x, y):
     model.add(Conv2D(filters=256, kernel_size=(3,3), strides=(1,1), padding='same'))
     model.add(MaxPool2D((2,2)))  # 5*10*256
     model.add(Activation('relu'))
-    model.add(Flatten())  #
+    model.add(Flatten())  # 12800
     model.add(Dropout(0.3))
     model.add(Dense(1000))
     model.add(Activation('relu'))
@@ -60,7 +60,7 @@ def build_model(x, y):
 
 
 def main(first_dataset, last_dataset, verbose=False):
-    X_train, y_train = reader.read_datasets(first_dataset, last_dataset)
+    X_train, y_train = reader.read_datasets(first_dataset, last_dataset, verbose=verbose)
     X_train, y_train = data_manip.preprocess(X_train, y_train)
 
     if verbose:
@@ -70,5 +70,5 @@ def main(first_dataset, last_dataset, verbose=False):
 
 
 if __name__ == '__main__':
-    main(first_dataset=1, last_dataset=3, verbose=False)
+    main(first_dataset=1, last_dataset=4, verbose=False)
 
