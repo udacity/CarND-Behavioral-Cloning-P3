@@ -16,7 +16,7 @@ The goals / steps of this project are the following:
 
 [//]: # (Image References)
 
-[image1]: ./doc/model.jpg "Model Architecture"
+[image1]: ./doc/model_architecture.png "Model Architecture"
 [image2]: ./doc/center.jpg "Center Image"
 [image3]: ./doc/preprocessed_images.jpg "Cropped and flipped images"
 
