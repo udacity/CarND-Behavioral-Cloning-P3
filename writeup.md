@@ -53,17 +53,19 @@ The model.py file contains the code for training and saving the convolution neur
 
 All 27500 data iteams are loaded into the memory. With 32 gigabites of RAM it was no problem, but with 16 or less it might be. Loading the data and training takes ca. 1.5 minutes on an average PC (as of 2020).
 
+I used Tensorflow 2.3.1 with Keras 2.4.3. It should work well also inside Udacity Anaconda environment.
+
 ### Model Architecture and Training Strategy
 
 #### 1. An appropriate model architecture has been employed
 
-My model starts with image cropping and normalization (model.py lines 43-44) 
+My model starts with image cropping and normalization (model.py lines 38-39) 
 
-They are followed by 3 convolution layers rangind from 7 * 7 to 3 * 3 kernel sizes, interpersed by max pooling with 4 * 4 kernel sizes and RELUs. The very first convolitional layer uses 2 * 2 stride to decrease the size of the next layer further (model.py lines 45-53)
+They are followed by 3 convolution layers rangind from 7 * 7 to 3 * 3 kernel sizes, interspersed with max-pooling with 4 * 4 kernel sizes and RELUs. The very first convolitional layer uses 2 * 2 stride to decrease the size of the next layer further (model.py lines 40-48)
 
-After flattening the resulting width is 12800. After a Dropout layer of 0.3 other two fully connected layers come with RELUs.
+After flattening the resulting width of the NN is 12800. After a Dropout layer of 0.3 other two fully connected layers come with RELUs.
 
-The last layer contains only a single node, that represents the steering angle.
+The last layer contains only a single node, that provides the steering angle.
 
 ![Model Architecture][image1]
 
@@ -79,12 +81,12 @@ Possible solutions:
 * Lessen the network size
 * Lessen the number of epochs
 
-Because the model drove very well, I decided to lessen the epochs to only 1. It passed my tests. So I did not feel to battle overtraining anymore. I just added the dropout because it was an expectation in the rubric points. (model.py line 55) 
+Because the model drove very well, I decided to lessen the epochs to only 2. It passed my tests. So I did not feel to battle overtraining anymore. I just added the dropout because it was an expectation in the rubric points. (model.py line 50) 
 
 
 #### 3. Model parameter tuning
 
-The model used an adam optimizer, so the learning rate was not tuned manually (model.py line 62).
+The model used an Adam optimizer, so the learning rate was not tuned manually (model.py line 57).
 
 No other tuning was required. This is actually my first iteration, and as it worked perfectly, I didn't fine tune it. The main fine tuning that could be applied is the time consuming experimentatin with decreasing its size up to the point its size and training time is minimized.
 
