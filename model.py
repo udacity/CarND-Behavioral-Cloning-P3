@@ -55,8 +55,8 @@ def build_model(x, y):
     model.add(Dense(1))
 
     model.compile(loss='mse', optimizer='adam')
-    model.fit(x, y, validation_split=0.2, shuffle=True, epochs=2)
-    model.save(cfg.path_model)
+    model.summary(line_length=160)
+    return model
 
 
 def main(first_dataset, last_dataset, verbose=False):
@@ -66,7 +66,9 @@ def main(first_dataset, last_dataset, verbose=False):
     if verbose:
         data_manip.show_example(X_train, y_train, start_index=0, columns=3, second_row_offset=len(X_train) // 2)
 
-    build_model(X_train, y_train)
+    model = build_model(X_train, y_train)
+    model.fit(X_train, y_train, validation_split=0.2, shuffle=True, epochs=2)
+    model.save(cfg.path_model)
 
 
 if __name__ == '__main__':
