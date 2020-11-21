@@ -19,7 +19,8 @@ import numpy as np
 from keras.models import Sequential
 from keras.layers import Flatten, Dense, Lambda, Conv2D, MaxPool2D, Activation, Dropout, Cropping2D
 import matplotlib.pyplot as plt
-import data_manip
+from sklearn.model_selection import train_test_split
+import math
 
 
 if cfg.GPU:
@@ -33,7 +34,7 @@ def show_img(image):
     plt.show()
 
 
-def build_model(x, y):
+def build_model():
     model = Sequential()
     model.add(Cropping2D(((30, 20), (0, 0)), input_shape=(160, 320, 3)))
     model.add(Lambda(lambda x: x / 255.0 - 0.5))
@@ -60,14 +61,24 @@ def build_model(x, y):
 
 
 def main(first_dataset, last_dataset, verbose=False):
-    X_train, y_train = reader.read_datasets(first_dataset, last_dataset, verbose=verbose)
-    X_train, y_train = data_manip.preprocess(X_train, y_train)
+    meta_db = reader.get_all_meta(1, 5, check_files_exist=True)
+    train_meta, valid_meta = train_test_split(meta_db, test_size=0.2, shuffle=True)
+    train_generator = reader.generator(train_meta, batch_size=cfg.batch_size)
+    validation_generator = reader.generator(valid_meta, batch_size=cfg.batch_size)
+    #X_train, y_train = preprocess(X_train, y_train)
 
     if verbose:
-        data_manip.show_example(X_train, y_train, start_index=0, columns=3, second_row_offset=len(X_train) // 2)
+        pass # show_example(X_train, y_train, start_index=0, columns=3, second_row_offset=len(X_train) // 2)
 
-    model = build_model(X_train, y_train)
-    model.fit(X_train, y_train, validation_split=0.2, shuffle=True, epochs=2)
+    model = build_model()
+    model.fit_generator(
+        generator=train_generator,
+        steps_per_epoch=math.ceil(len(train_meta)/cfg.batch_size),
+        validation_data=validation_generator,
+        validation_steps=math.ceil(len(valid_meta)/cfg.batch_size),
+        epochs=2,
+        verbose=1
+    )
     model.save(cfg.path_model)
 
 

@@ -3,80 +3,76 @@ import cfg
 import os
 import cv2
 import numpy as np
+import sklearn.utils
 
 
-def read_line(data_idx, csv_line, side='center', verbose=True):
-    column = 0
-    measurement = float(csv_line[3])
-    if side == 'left':
-        column = 1
-        measurement += cfg.camera_offset_steer
-    elif side == 'right':
-        column = 2
-        measurement -= cfg.camera_offset_steer
-
-    path = cfg.path_fmt_data_root.format(data_idx) + cfg.path_img + os.path.basename(csv_line[column])
-
-    if os.path.exists(path):
-        image = cv2.imread(path)
-        images = image[..., ::-1]
-        return image, measurement
-    else:
-        if verbose:
-            print('WARNING! File missing: {}'.format(path))
-        return None, None
-
-
-def read_sim_data(dataset=1, verbose=False):
-    # read csv
-    path_current_root = cfg.path_fmt_data_root.format(dataset)
-    path = path_current_root + cfg.path_log
-    print('Reading file {}...'.format(path))
-    csv_lines = []
-    with open(path) as csv_file:
-        reader = csv.reader(csv_file)
-        for line in reader:
-            csv_lines.append(line)
-    print('File read successfully. First line:\n', csv_lines[0])
-
-    # read images
-    print('Reading images...')
-    images = []
-    steering_measurements = []
-    success = 0
-    for line in csv_lines:
-        image, steering_measurement = read_line(dataset, line, side='center', verbose=verbose)
-        if image is not None and steering_measurement is not None:
-            images.append(image[...,::-1])
-            steering_measurements.append(steering_measurement)
-            success += 1
-        image, steering_measurement = read_line(dataset, line, side='left', verbose=verbose)
-        if image is not None and steering_measurement is not None:
-            images.append(image[...,::-1])
-            steering_measurements.append(steering_measurement)
-            success += 1
-        image, steering_measurement = read_line(dataset, line, side='right', verbose=verbose)
-        if image is not None and steering_measurement is not None:
-            images.append(image[...,::-1])
-            steering_measurements.append(steering_measurement)
-            success += 1
-    images = np.array(images)
-    steering_measurements = np.array(steering_measurements)
-    print('From a total of {} successfully read {} images to dataset.'.format(len(csv_lines * 3), success))
-    return images, steering_measurements
+def get_all_meta(first_dataset, last_dataset, check_files_exist=True, verbose=False):
+    """
+    Reads in all image paths and steering values from given folders (last exclusive).
+    Schema: steering (float), img path (str).
+    """
+    meta_db = []
+    for data_set in range(first_dataset, last_dataset):
+        path = cfg.path_fmt_data_root.format(data_set) + cfg.path_log
+        print('Reading file {}...'.format(path), end='')
+        with open(path) as csv_file:
+            reader = csv.reader(csv_file)
+            count_possible, count_ok = 0, 0
+            for line in reader:
+                count_possible += 3
+                if (not check_files_exist) or (os.path.exists(line[0])):  # center image
+                    current_line_data = []
+                    current_line_data.append(line[0])
+                    current_line_data.append(float(line[3]))
+                    meta_db.append([*current_line_data])
+                    count_ok += 1
+                else:
+                    if verbose:
+                        print('File missing:', line[0])
+                if (not check_files_exist) or (os.path.exists(line[1])):  # left image
+                    current_line_data = []
+                    current_line_data.append(line[1])
+                    current_line_data.append(float(line[3]))
+                    meta_db.append([*current_line_data])
+                    count_ok += 1
+                else:
+                    if verbose:
+                        print('File missing:', line[1])
+                if (not check_files_exist) or (os.path.exists(line[2])):  # right image
+                    current_line_data = []
+                    current_line_data.append(line[2])
+                    current_line_data.append(float(line[3]))
+                    meta_db.append([*current_line_data])
+                    count_ok += 1
+                else:
+                    if verbose:
+                        print('File missing:', line[2])
+            print('done. From {} read {} items successfully.{}'.format(count_possible, count_ok, ' Images checked for existence.' if check_files_exist else ''))
+    print('Total valid items explored:', len(meta_db))
+    return meta_db
 
 
-def read_datasets(first, last, verbose=False):
-    X_train, y_train = read_sim_data(first, verbose)
-    if last > first:
-        for i in range(first + 1, last + 1):
-            X, y = read_sim_data(i, verbose)
-            X_train = np.vstack((X_train, X))
-            y_train = np.hstack((y_train, y))
-    if verbose:
-        print('Loaded {} images from datasets {}..{} (both inclusive).'.format(X_train.shape[0], first, last))
-    return X_train, y_train
+def generator(meta_db, batch_size):
+    """Returns data for keras.fit in form of a list of (X_Train, y_train)"""
+    num_samples = len(meta_db)
+    while 1:
+        for offset in range(0, num_samples, batch_size):
+            batch_metas = meta_db[offset:offset+batch_size]
+            images = []
+            angles = []
+            for batch_meta in batch_metas:
+                image = cv2.imread(batch_meta[0])
+                images.append(image)
+                angles.append(batch_meta[1])
+                # image = image[:,-1,:]  # flip  # TODO
+                # images.append(image)
+                # angles.append(batch_meta[1])
+
+            X_train = np.array(images)
+            y_train = np.array(angles)
+            X_train, y_train = sklearn.utils.shuffle(X_train, y_train)
+            yield (X_train, y_train)
 
 
 if __name__ == '__main__':
-    read_datasets(first=1, last=3, verbose=True)
+    meta_db = get_all_meta(1, 5, check_files_exist=True, verbose=False)
