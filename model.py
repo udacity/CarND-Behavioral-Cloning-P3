@@ -61,11 +61,11 @@ def build_model():
 
 
 def main(first_dataset, last_dataset, verbose=False):
-    meta_db = reader.get_all_meta(1, 5, check_files_exist=True)
-    train_meta, valid_meta = train_test_split(meta_db, test_size=0.2, shuffle=True)
+    meta_db = reader.get_all_meta(first_dataset, last_dataset, check_files_exist=True)
+    train_meta, valid_meta = train_test_split(meta_db, test_size=cfg.test_size, shuffle=True)
     train_generator = reader.generator(train_meta, batch_size=cfg.batch_size)
     validation_generator = reader.generator(valid_meta, batch_size=cfg.batch_size)
-    #X_train, y_train = preprocess(X_train, y_train)
+    # X_train, y_train = preprocess(X_train, y_train)
 
     if verbose:
         pass # show_example(X_train, y_train, start_index=0, columns=3, second_row_offset=len(X_train) // 2)
@@ -73,15 +73,15 @@ def main(first_dataset, last_dataset, verbose=False):
     model = build_model()
     model.fit_generator(
         generator=train_generator,
-        steps_per_epoch=math.ceil(len(train_meta)/cfg.batch_size),
+        steps_per_epoch=cfg.generator_new_item_multiplier * math.ceil(len(train_meta) // cfg.batch_size),
         validation_data=validation_generator,
-        validation_steps=math.ceil(len(valid_meta)/cfg.batch_size),
-        epochs=2,
+        validation_steps=cfg.generator_new_item_multiplier * math.ceil(len(valid_meta) // cfg.batch_size),
+        epochs=cfg.epochs,
         verbose=1
     )
-    model.save(cfg.path_model)
+    model.save(cfg.model_rel_path)
 
 
 if __name__ == '__main__':
-    main(first_dataset=1, last_dataset=4, verbose=False)
+    main(first_dataset=cfg.first_dataset, last_dataset=cfg.last_dataset + 1, verbose=False)
 

@@ -13,7 +13,7 @@ def get_all_meta(first_dataset, last_dataset, check_files_exist=True, verbose=Fa
     """
     meta_db = []
     for data_set in range(first_dataset, last_dataset):
-        path = cfg.path_fmt_data_root.format(data_set) + cfg.path_log
+        path = cfg.data_root_path_fmt.format(data_set) + cfg.csv_rel_path
         print('Reading file {}...'.format(path), end='')
         with open(path) as csv_file:
             reader = csv.reader(csv_file)
@@ -56,17 +56,17 @@ def generator(meta_db, batch_size):
     """Returns data for keras.fit in form of a list of (X_Train, y_train)"""
     num_samples = len(meta_db)
     while 1:
-        for offset in range(0, num_samples, batch_size):
-            batch_metas = meta_db[offset:offset+batch_size]
+        for offset in range(0, num_samples, batch_size // cfg.generator_new_item_multiplier):
+            batch_metas = meta_db[offset : offset + batch_size // cfg.generator_new_item_multiplier]
             images = []
             angles = []
             for batch_meta in batch_metas:
                 image = cv2.imread(batch_meta[0])
                 images.append(image)
                 angles.append(batch_meta[1])
-                # image = image[:,-1,:]  # flip  # TODO
-                # images.append(image)
-                # angles.append(batch_meta[1])
+                image = image[:,::-1,:]  # add also the flipped version
+                images.append(image)
+                angles.append(-1.0 * batch_meta[1])
 
             X_train = np.array(images)
             y_train = np.array(angles)
