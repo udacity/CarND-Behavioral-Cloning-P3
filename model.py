@@ -23,15 +23,10 @@ from sklearn.model_selection import train_test_split
 import math
 
 
-if cfg.GPU:
+if cfg.use_gpu:
     os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
 else:
     os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-
-
-def show_img(image):
-    plt.imshow(image)
-    plt.show()
 
 
 def build_model():
