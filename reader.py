@@ -10,6 +10,15 @@ import matplotlib.pyplot as plt
 import random
 
 
+
+def should_skip_zero_steering_item():
+    """from X items where (steering == 0) skip Y items to fight unbalanced input"""
+    cfg.state.ignore_zero_steer_items_count += 1
+    if cfg.state.ignore_zero_steer_items_count > cfg.ignore_zero_steer_items_from:
+        cfg.state.ignore_zero_steer_items_count = 1
+    return cfg.state.ignore_zero_steer_items_count <= cfg.ignore_zero_steer_items_skip
+
+
 def get_all_meta(first_dataset, last_dataset, check_files_exist=True, verbose=False):
     """
     Reads in all image paths and steering values from given folders (last exclusive).
@@ -21,11 +30,14 @@ def get_all_meta(first_dataset, last_dataset, check_files_exist=True, verbose=Fa
         print('Reading file {}...'.format(path), end='')
         with open(path) as csv_file:
             reader = csv.reader(csv_file)
-            count_possible, count_ok = 0, 0
+            count_possible, count_skipped_straight, count_ok = 0, 0, 0
             for line in reader:
-                count_possible += 3
                 center_img, left_img, right_img, angle, _, _, _ = line
                 angle = float(angle)
+                if angle == 0 and should_skip_zero_steering_item():
+                    count_skipped_straight += 1
+                    continue
+                count_possible += 3
                 if (not check_files_exist) or (os.path.exists(center_img)):  # center image
                     current_line_data = []
                     current_line_data.append(line[0])
@@ -53,13 +65,13 @@ def get_all_meta(first_dataset, last_dataset, check_files_exist=True, verbose=Fa
                 else:
                     if verbose:
                         print('File missing:', line[2])
-            print('done. From {} read {} items successfully.{}'.format(count_possible, count_ok, ' Images checked for existence.' if check_files_exist else ''))
+            print('done. From {} skipped {}, read {} items successfully.{}'.format(count_possible, count_skipped_straight, count_ok, ' Images checked for existence.' if check_files_exist else ''))
     print('Total valid items explored:', len(meta_db))
     return meta_db
 
 
 def show_examples(X, y, lines, columns):
-    fig, ax = plt.subplots(lines, columns, figsize=(20, 10))
+    fig, ax = plt.subplots(lines, columns, figsize=(18, 10))
     for vert in range(lines):
         for horiz in range(columns):
             i = random.randrange(len(X))
@@ -74,9 +86,9 @@ def generator(meta_db, batch_size):
     num_samples = len(meta_db)
     batch_mod_size = batch_size // cfg.generator_new_item_multiplier
     datagen = preprocessing.image.ImageDataGenerator(
-        rotation_range=10,
-        height_shift_range=0.9,
-        brightness_range=(0.8, 1.2),
+        rotation_range=cfg.datagen_rotation_range,
+        #height_shift_range=0.02,
+        #brightness_range=[0.9, 1.1],
         dtype=tf.uint8,
     )
     while 1:
@@ -94,19 +106,21 @@ def generator(meta_db, batch_size):
                 images.append(flipped)
                 angles.append(-1.0 * angle)
                 # generate randomized
-                # rnd = datagen.random_transform(image)
-                # images.append(rnd)
-                # angles.append(angle)
-                # # generate flipped randomized
-                # rnd_flipped = datagen.random_transform(flipped)
-                # images.append(rnd_flipped)
-                # angles.append(-1.0 * angle)
+                rnd = datagen.random_transform(image)
+                images.append(rnd)
+                angles.append(angle)
+                # generate flipped randomized
+                rnd_flipped = datagen.random_transform(flipped)
+                images.append(rnd_flipped)
+                angles.append(-1.0 * angle)
 
             X = np.array(images)
             y = np.array(angles)
 
             if cfg.debug_show_example_images:
-                show_examples(X, y, lines=2, columns=4)
+                if cfg.state.debug_show_example_images_count < cfg.debug_show_example_images:
+                    show_examples(X, y, lines=2, columns=4)
+                    cfg.state.debug_show_example_images_count += 1
 
             yield (X, y)
 

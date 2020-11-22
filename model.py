@@ -1,15 +1,13 @@
 """
 Improvement ideas:
-- Use screenshots from several runs
+- ignore X% of 0 steering items
 - Use recovery videos
-- Use reverse videos
 - Gather smoother steering input (mouse, wheel?)
 - Gauss smoothing of the road surface
 - CLAHE
 - HSL: emphasize colors
 - nVidia algorithm
 - Add throttle / brake
-- If too much input: use a generator function with with .fit_generator()
 """
 
 import os
