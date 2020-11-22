@@ -63,12 +63,14 @@ def main(first_dataset, last_dataset, verbose=False):
     if verbose:
         pass # show_example(X_train, y_train, start_index=0, columns=3, second_row_offset=len(X_train) // 2)
 
+    datagen_mult = cfg.datagen_item_multiplier if cfg.enable_datagen else 1.0
+
     model = build_model()
     model.fit_generator(
         generator=train_generator,
-        steps_per_epoch=cfg.generator_new_item_multiplier * math.ceil(len(train_meta) // cfg.batch_size),
+        steps_per_epoch=cfg.generator_new_item_multiplier * datagen_mult * math.ceil(len(train_meta) // cfg.batch_size),
         validation_data=validation_generator,
-        validation_steps=cfg.generator_new_item_multiplier * math.ceil(len(valid_meta) // cfg.batch_size),
+        validation_steps=cfg.generator_new_item_multiplier *  datagen_mult * math.ceil(len(valid_meta) // cfg.batch_size),
         epochs=cfg.epochs,
         verbose=1
     )

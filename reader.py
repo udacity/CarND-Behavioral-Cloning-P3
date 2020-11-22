@@ -85,6 +85,9 @@ def generator(meta_db, batch_size):
     """Returns data for keras.fit in form of a list of (X_Train, y_train)"""
     num_samples = len(meta_db)
     batch_mod_size = batch_size // cfg.generator_new_item_multiplier
+    if cfg.enable_datagen:
+        batch_mod_size = batch_mod_size // cfg.datagen_item_multiplier
+
     datagen = preprocessing.image.ImageDataGenerator(
         rotation_range=cfg.datagen_rotation_range,
         #height_shift_range=0.02,
@@ -106,13 +109,14 @@ def generator(meta_db, batch_size):
                 images.append(flipped)
                 angles.append(-1.0 * angle)
                 # generate randomized
-                rnd = datagen.random_transform(image)
-                images.append(rnd)
-                angles.append(angle)
-                # generate flipped randomized
-                rnd_flipped = datagen.random_transform(flipped)
-                images.append(rnd_flipped)
-                angles.append(-1.0 * angle)
+                if cfg.enable_datagen:
+                    rnd = datagen.random_transform(image)
+                    images.append(rnd)
+                    angles.append(angle)
+                    # generate flipped randomized
+                    rnd_flipped = datagen.random_transform(flipped)
+                    images.append(rnd_flipped)
+                    angles.append(-1.0 * angle)
 
             X = np.array(images)
             y = np.array(angles)
