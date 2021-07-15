@@ -31,43 +31,44 @@ The data is collected via the simulator.
 ## 3. Pipeline
 The pipeline consist of, six steps as follows: 
 
-1. Import the required libraries
+### 1. Import the required libraries
 
-2. Loading the raw data
+### 2. Loading the raw data
 
-3. Data Augmentation
-    - Images are cropped to remove irrelevant parts of the training (the car's hood and the sky)
-    - Images are flipped and their corresponding steering angle values are multiplied by -1
+### 3. Data Augmentation
+- Images are cropped to remove irrelevant parts of the training (the car's hood and the sky)
+- Images are flipped and their corresponding steering angle values are multiplied by -1
 
-4. Image Pre-Processing
-    - Image is resized (200x66)
+### 4. Image Pre-Processing
+- Image is resized (200x66)
 
-5. Creating the CNN Architecture using Keras  
-    > Following CNN architecture is used as shown below:
-    ![alt text][image1]  
-    The CNN architecture is used from NVIDIA's End to End Learning for Self-Driving Cars paper
-    > This network architecture consists of 9 layers, including a normalization layer, three 5x5 convolutional layers,
-    two 3x3 convolution layers and three fully connected layers.  
+### 5. Creating the CNN Architecture using Keras  
+Following CNN architecture is used as shown below:
+![alt text][image1]  
+The CNN architecture is used from NVIDIA's End to End Learning for Self-Driving Cars paper
+> This network architecture consists of 9 layers, including a normalization layer, three 5x5 convolutional layers,
+two 3x3 convolution layers and three fully connected layers.  
       
-    > The below is a model structure output from the Keras which gives more details on the shapes and the number of
-    parameters.  
+> The below is a model structure output from the Keras which gives more details on the shapes and the number of parameters.  
 
-    >
-     | Layer (type)                   |Output Shape      |Params  |Connected to     |
-     |--------------------------------|------------------|-------:|-----------------|
-     |lambda_1 (Lambda)               |(None, 66, 200, 3)|0       |lambda_input_1   |
-     |convolution2d_1 (Convolution2D) |(None, 31, 98, 24)|1824    |lambda_1         |
-     |convolution2d_2 (Convolution2D) |(None, 14, 47, 36)|21636   |convolution2d_1  |
-     |convolution2d_3 (Convolution2D) |(None, 5, 22, 48) |43248   |convolution2d_2  |
-     |convolution2d_4 (Convolution2D) |(None, 3, 20, 64) |27712   |convolution2d_3  |
-     |convolution2d_5 (Convolution2D) |(None, 1, 18, 64) |36928   |convolution2d_4  |
-     |dropout_1 (Dropout)             |(None, 1, 18, 64) |0       |convolution2d_5  |
-     |flatten_1 (Flatten)             |(None, 1164)      |0       |dropout_1        |
-     |dense_1 (Dense)                 |(None, 100)       |115300  |flatten_1        |
-     |dense_2 (Dense)                 |(None, 50)        |5050    |dense_1          |
-     |dense_3 (Dense)                 |(None, 10)        |510     |dense_2          |
-     |dense_4 (Dense)                 |(None, 1)         |11      |dense_3          |
-     |                                |**Total params**  |252219  |                 |
+>
+ | Layer (type)                   |Output Shape      |Params  |Connected to     |
+ |--------------------------------|------------------|-------:|-----------------|
+ |lambda_1 (Lambda)               |(None, 66, 200, 3)|0       |lambda_input_1   |
+ |convolution2d_1 (Convolution2D) |(None, 31, 98, 24)|1824    |lambda_1         |
+ |convolution2d_2 (Convolution2D) |(None, 14, 47, 36)|21636   |convolution2d_1  |
+ |convolution2d_3 (Convolution2D) |(None, 5, 22, 48) |43248   |convolution2d_2  |
+ |convolution2d_4 (Convolution2D) |(None, 3, 20, 64) |27712   |convolution2d_3  |
+ |convolution2d_5 (Convolution2D) |(None, 1, 18, 64) |36928   |convolution2d_4  |
+ |dropout_1 (Dropout)             |(None, 1, 18, 64) |0       |convolution2d_5  |
+ |flatten_1 (Flatten)             |(None, 1164)      |0       |dropout_1        |
+ |dense_1 (Dense)                 |(None, 100)       |115300  |flatten_1        |
+ |dense_2 (Dense)                 |(None, 50)        |5050    |dense_1          |
+ |dense_3 (Dense)                 |(None, 10)        |510     |dense_2          |
+ |dense_4 (Dense)                 |(None, 1)         |11      |dense_3          |
+ |                                |**Total params**  |252219  |                 |
 
-6. Compile and Save the Model
-    - Finally, the model is compiled using Mean Square Error (MSE) loss function and Adaptive moment estimation optimizer (also know as. Adam)
+### 6. Compile and Save the Model
+- I used Mean Square Error (MSE) loss function to measure how close the model predeicts to the given steering and for each image.
+- I used Adam optimizer for optimization with learning rate 1.0e-3(default rate) 
+- Finally, the model is compiled and saved.
