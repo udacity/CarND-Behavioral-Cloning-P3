@@ -47,6 +47,11 @@ jobs:
         run: |
           source venv/bin/activate
           python3 ./playground/speedTest.py
+      - name: Speed measure
+        if: github.HEAD_REF == 'measure' || startsWith(github.HEAD_REF, 'measure')
+        run: |
+          source venv/bin/activate
+          python${{ matrix.py }} ./playground/speedMeasurement.py
       - name: Train car data
         run: |
           source venv/bin/activate
