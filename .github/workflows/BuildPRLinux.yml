@@ -18,6 +18,8 @@ jobs:
         include:
           - os : ubuntu-22.04
             py: "3.10"
+          - os: data
+            py: "3.10"
     steps:
       - name: Checkout
         uses: actions/checkout@v3
